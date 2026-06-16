@@ -146,6 +146,73 @@
 
   .empty-state { text-align: center; padding: 40px 20px; color: var(--text-muted); font-size: 14px; }
 
+  /* ───── LANDING VIEW ───── */
+  .landing-view { max-width: 720px; margin: 0 auto; padding: 40px 24px 24px; }
+  .landing-card {
+    background: var(--surface);
+    border-radius: 16px;
+    padding: 40px 36px;
+    box-shadow: 0 4px 20px rgba(26,74,153,0.06);
+    text-align: center;
+  }
+  .landing-title { font-size: 22px; font-weight: 700; margin-bottom: 4px; letter-spacing: -0.02em; }
+  .landing-sub { font-size: 13px; color: var(--text-sub); margin-bottom: 28px; }
+  .stat-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+    margin-bottom: 28px;
+  }
+  .stat {
+    background: var(--bg);
+    border-radius: 10px;
+    padding: 18px 12px;
+  }
+  .stat-num { font-size: 22px; font-weight: 700; color: var(--brand); line-height: 1.2; }
+  .stat-num.small { font-size: 13px; }
+  .stat-label { font-size: 11px; color: var(--text-sub); margin-top: 4px; font-weight: 500; }
+  .btn-big {
+    font-size: 14px;
+    padding: 13px 28px;
+    width: 100%;
+    justify-content: center;
+  }
+  .guide-card {
+    margin-top: 16px;
+    background: var(--surface);
+    border-radius: 12px;
+    padding: 22px 28px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+  }
+  .guide-card h2 {
+    font-size: 14px;
+    font-weight: 700;
+    margin-bottom: 12px;
+    color: var(--text);
+  }
+  .guide-card ol {
+    padding-left: 18px;
+    color: var(--text-sub);
+    line-height: 1.9;
+    font-size: 13px;
+  }
+  .guide-card ol strong { color: var(--text); font-weight: 600; }
+
+  /* Home/back button in header */
+  .home-btn {
+    width: 32px; height: 32px;
+    border-radius: 8px;
+    background: var(--bg);
+    color: var(--text-sub);
+    font-size: 14px;
+    display: flex; align-items: center; justify-content: center;
+    transition: all .12s;
+    margin-right: 4px;
+  }
+  .home-btn:hover { background: var(--brand-light); color: var(--brand); }
+  .home-btn[hidden] { display: none !important; }
+
+  /* ───── MODAL ───── */
   .modal {
     position: fixed; inset: 0;
     display: flex; align-items: center; justify-content: center;
@@ -307,8 +374,9 @@
 <div id="adminUI" hidden>
   <header class="admin-header">
     <div class="header-left">
-      <h1>파트너 카드 관리</h1>
-      <span class="cards-count" id="cardsCount"></span>
+      <button class="home-btn" id="homeBtn" hidden title="메인으로">🏠</button>
+      <h1 id="pageTitle">닥터팔레트 파트너 관리</h1>
+      <span class="cards-count" id="cardsCount" hidden></span>
     </div>
     <div class="header-right">
       <button class="btn btn-secondary" id="catMgrBtn">🏷 카테고리 관리</button>
@@ -322,12 +390,40 @@
     </div>
   </header>
 
-  <div class="admin-body">
+  <!-- Landing / 환영 화면 -->
+  <div id="landingView" class="landing-view">
+    <div class="landing-card">
+      <div class="landing-title">👋 환영합니다</div>
+      <div class="landing-sub">닥터팔레트 파트너 페이지를 관리하는 어드민입니다</div>
+      <div class="stat-grid">
+        <div class="stat"><div class="stat-num" id="statPartners">0</div><div class="stat-label">파트너 카드</div></div>
+        <div class="stat"><div class="stat-num" id="statCats">0</div><div class="stat-label">카테고리</div></div>
+        <div class="stat"><div class="stat-num small" id="statGh">미연결</div><div class="stat-label">GitHub</div></div>
+        <div class="stat"><div class="stat-num small" id="statLastPub">-</div><div class="stat-label">최근 반영</div></div>
+      </div>
+      <button class="btn btn-primary btn-big" id="enterEditBtn">📋 파트너 관리 시작 →</button>
+    </div>
+
+    <div class="guide-card">
+      <h2>📖 사용 가이드</h2>
+      <ol>
+        <li><strong>"파트너 관리 시작"</strong> 클릭 → 18개 카드 리스트가 보입니다.</li>
+        <li>각 카드 우측의 <strong>"편집"</strong> 으로 업체명·로고·요약·설명·링크 수정.</li>
+        <li><strong>"저장"</strong> 클릭 시 자동으로 GitHub에 반영되어 1~2분 후 라이브 사이트 업데이트.</li>
+        <li>로고는 편집 모달의 <strong>"📤 업로드"</strong> 버튼으로 GitHub에 바로 업로드 가능.</li>
+        <li>우상단 <strong>"🏷 카테고리 관리"</strong> 에서 카테고리 추가/수정/삭제.</li>
+        <li>일괄 변경 후 <strong>"🚀 GitHub에 반영"</strong> 으로 한 번에 반영 가능.</li>
+      </ol>
+    </div>
+  </div>
+
+  <!-- Edit view / 카드 리스트 -->
+  <div id="editView" class="admin-body" hidden>
     <div class="toolbar">
       <button class="btn btn-primary" id="addBtn">+ 새 파트너 추가</button>
       <div class="info">
-        변경사항은 자동 저장됩니다 (브라우저 로컬).<br>
-        <strong>🚀 GitHub에 반영</strong> 클릭 시 1~2분 내로 라이브 페이지에 즉시 반영됩니다.
+        편집 모달의 <strong>"저장"</strong> 클릭 시 GitHub에 자동 반영됩니다.<br>
+        순서 변경·삭제 후에는 우상단 <strong>"🚀 GitHub에 반영"</strong> 클릭 필요.
       </div>
     </div>
     <div id="cardsList" class="cards-list"></div>
@@ -493,6 +589,7 @@ const AUTH = {
 const STORAGE_KEY = "weavr_partners_v1";
 const CAT_STORAGE_KEY = "weavr_categories_v1";
 const GH_STORAGE_KEY = "weavr_github_v1";
+const LAST_PUB_KEY = "weavr_last_publish_v1";
 const SESSION_KEY = "weavr_admin_session";
 const PARTNERS_HTML_PATH = "partners.html";
 
@@ -603,7 +700,8 @@ let state = {
   partners: [],
   categories: {},
   editingId: null,
-  editingCatSlug: null
+  editingCatSlug: null,
+  currentView: 'landing'
 };
 
 function loadAll() {
@@ -970,7 +1068,7 @@ function readFormToCard() {
   };
 }
 
-function saveModal() {
+async function saveModal() {
   const updated = readFormToCard();
   if (!updated) return;
   if (updated.type === 'real' && !updated.name) {
@@ -982,7 +1080,11 @@ function saveModal() {
   savePartners();
   renderCardsList();
   closeModal();
-  showToast('저장되었습니다', 'success');
+  showToast('로컬에 저장되었습니다', 'success');
+  // Auto-publish to GitHub if token is configured
+  if (loadGh().token) {
+    await publishToGithub({ skipConfirm: true, silent: true });
+  }
 }
 
 function closeModal() {
@@ -1328,7 +1430,7 @@ function wireCatEditEvents(cat) {
   });
 }
 
-function saveCatEdit() {
+async function saveCatEdit() {
   const label = document.getElementById('catLabelInput').value.trim();
   const slug = slugify(document.getElementById('catSlugInput').value || '');
   const bg = document.getElementById('catBgInput').value.trim() || '#dde0e8';
@@ -1351,10 +1453,15 @@ function saveCatEdit() {
   state.categories[slug] = { label, bg, fg, icon };
   saveCategories();
   renderCatList();
-  renderCardsList();  // tag 색상이 바뀔 수 있으므로
+  renderCardsList();
   document.getElementById('catEditModal').hidden = true;
+  document.getElementById('catEditModal').style.display = 'none';
   state.editingCatSlug = null;
   showToast(isNew ? '카테고리가 추가되었습니다' : '카테고리가 수정되었습니다', 'success');
+  // Auto-publish
+  if (loadGh().token) {
+    await publishToGithub({ skipConfirm: true, silent: true });
+  }
 }
 
 /* ════════════════════════════════════════════════════════════════
@@ -1521,26 +1628,27 @@ function utf8ToBase64(str) {
   return btoa(binary);
 }
 
-async function publishToGithub() {
+async function publishToGithub(opts = {}) {
+  const { skipConfirm = false, silent = false, btnEl = null } = opts;
   const gh = loadGh();
   if (!gh.token) {
-    showToast('먼저 GitHub 설정에서 토큰을 등록하세요', 'error');
-    setTimeout(openGithubSettings, 800);
-    return;
+    showToast('GitHub 설정에서 토큰을 먼저 등록하세요', 'error');
+    if (!silent) setTimeout(openGithubSettings, 800);
+    return false;
   }
 
   const total = state.partners.length;
   const catCount = getCatList().length;
-  if (!confirm(`partners.html을 GitHub에 즉시 반영합니다.\n\n• 파트너: ${total}개\n• 카테고리: ${catCount}개\n• 위치: ${gh.owner}/${gh.repo} (${gh.branch})\n\n1~2분 후 라이브 사이트에 반영됩니다. 계속하시겠습니까?`)) {
-    return;
+  if (!skipConfirm) {
+    if (!confirm(`partners.html을 GitHub에 즉시 반영합니다.\n\n• 파트너: ${total}개\n• 카테고리: ${catCount}개\n• 위치: ${gh.owner}/${gh.repo} (${gh.branch})\n\n1~2분 후 라이브 사이트에 반영됩니다. 계속하시겠습니까?`)) {
+      return false;
+    }
   }
 
-  const btn = document.getElementById('publishBtn');
+  const btn = btnEl || document.getElementById('publishBtn');
   const originalText = btn ? btn.textContent : '';
-  if (btn) {
-    btn.disabled = true;
-    btn.textContent = '⏳ 반영 중...';
-  }
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ 반영 중...'; }
+  if (silent) showToast('GitHub에 반영 중...', '');
 
   try {
     const newHtml = await generateUpdatedHtml();
@@ -1562,7 +1670,6 @@ async function publishToGithub() {
       throw new Error(`기존 파일 조회 실패: ${getRes.status}`);
     }
 
-    // PUT new content
     const body = {
       message: `Update partners.html (${total} cards, ${catCount} categories) via admin`,
       content: utf8ToBase64(newHtml),
@@ -1585,15 +1692,16 @@ async function publishToGithub() {
       throw new Error(`${putRes.status}: ${errText.slice(0,200)}`);
     }
 
-    showToast(`✓ GitHub에 반영 완료! 1~2분 후 라이브에 적용됩니다.`, 'success');
+    localStorage.setItem(LAST_PUB_KEY, new Date().toISOString());
+    showToast(`✓ GitHub 반영 완료! 1~2분 후 라이브 적용됩니다.`, 'success');
+    if (state.currentView === 'landing') renderLandingStats();
+    return true;
   } catch(err) {
     showToast(`반영 실패: ${err.message}`, 'error');
     console.error(err);
+    return false;
   } finally {
-    if (btn) {
-      btn.disabled = false;
-      btn.textContent = originalText;
-    }
+    if (btn) { btn.disabled = false; btn.textContent = originalText; }
   }
 }
 
@@ -1697,7 +1805,42 @@ function showAdmin() {
   document.getElementById('loginScreen').hidden = true;
   document.getElementById('adminUI').hidden = false;
   loadAll();
+  showLandingView();
+}
+
+function showLandingView() {
+  state.currentView = 'landing';
+  document.getElementById('landingView').hidden = false;
+  document.getElementById('editView').hidden = true;
+  document.getElementById('homeBtn').hidden = true;
+  document.getElementById('cardsCount').hidden = true;
+  document.getElementById('pageTitle').textContent = '닥터팔레트 파트너 관리';
+  renderLandingStats();
+}
+
+function showEditView() {
+  state.currentView = 'edit';
+  document.getElementById('landingView').hidden = true;
+  document.getElementById('editView').hidden = false;
+  document.getElementById('homeBtn').hidden = false;
+  document.getElementById('cardsCount').hidden = false;
+  document.getElementById('pageTitle').textContent = '파트너 카드 관리';
   renderCardsList();
+}
+
+function renderLandingStats() {
+  document.getElementById('statPartners').textContent = state.partners.length;
+  document.getElementById('statCats').textContent = getCatList().length;
+  const gh = loadGh();
+  document.getElementById('statGh').textContent = gh.token ? '✓ 연결됨' : '미연결';
+  const last = localStorage.getItem(LAST_PUB_KEY);
+  if (last) {
+    const d = new Date(last);
+    const pad = n => String(n).padStart(2,'0');
+    document.getElementById('statLastPub').textContent = `${d.getMonth()+1}/${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  } else {
+    document.getElementById('statLastPub').textContent = '없음';
+  }
 }
 
 document.getElementById('loginForm').addEventListener('submit', async (e) => {
@@ -1717,8 +1860,10 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
 });
 
 document.getElementById('addBtn').addEventListener('click', openAddModal);
+document.getElementById('enterEditBtn').addEventListener('click', showEditView);
+document.getElementById('homeBtn').addEventListener('click', showLandingView);
 document.getElementById('exportHtmlBtn').addEventListener('click', exportHtml);
-document.getElementById('publishBtn').addEventListener('click', publishToGithub);
+document.getElementById('publishBtn').addEventListener('click', () => publishToGithub());
 document.getElementById('exportJsonBtn').addEventListener('click', exportJson);
 document.getElementById('importJsonBtn').addEventListener('click', importJson);
 document.getElementById('jsonFileInput').addEventListener('change', handleJsonFile);

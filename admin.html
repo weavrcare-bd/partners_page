@@ -152,6 +152,7 @@
     z-index: 100;
     padding: 1.5rem;
   }
+  .modal[hidden] { display: none !important; }
   .modal-backdrop {
     position: absolute; inset: 0;
     background: rgba(0,0,0,0.4);
@@ -785,7 +786,7 @@ function openEditModal(id, isNew=false) {
 
   document.getElementById('modalTitle').textContent = isNew ? '새 파트너 추가' : '파트너 편집';
   document.getElementById('modalBody').innerHTML = buildFormHtml(p);
-  document.getElementById('modal').hidden = false;
+  openModal('modal');
   wireFormEvents(p);
 
   if (isNew) setTimeout(() => document.getElementById('nameInput')?.focus(), 50);
@@ -1099,7 +1100,7 @@ function openGithubSettings() {
   document.getElementById('ghBranchInput').value = gh.branch;
   document.getElementById('ghFolderInput').value = gh.folder;
   document.getElementById('ghStatus').innerHTML = '';
-  document.getElementById('githubModal').hidden = false;
+  openModal('githubModal');
 }
 
 function saveGhFromForm() {
@@ -1152,7 +1153,7 @@ async function testGithubConnection() {
 ══════════════════════════════════════════════════════════════════ */
 function openCategoryManager() {
   renderCatList();
-  document.getElementById('catMgrModal').hidden = false;
+  openModal('catMgrModal');
 }
 
 function renderCatList() {
@@ -1223,7 +1224,7 @@ function openCatEdit(slug) {
   const cat = slug ? getCat(slug) : { label:'', bg:'#dde0e8', fg:'#3a3a5e', icon:ICON_PRESETS[0].svg };
   document.getElementById('catEditTitle').textContent = slug ? `카테고리 편집: ${cat.label}` : '새 카테고리 추가';
   document.getElementById('catEditBody').innerHTML = buildCatEditForm(slug, cat);
-  document.getElementById('catEditModal').hidden = false;
+  openModal('catEditModal');
   wireCatEditEvents(cat);
 }
 
@@ -1576,7 +1577,7 @@ function openPasswordModal() {
   document.getElementById('newPwInput').value = '';
   document.getElementById('newPwConfirmInput').value = '';
   document.getElementById('newPwHashOutput').value = '';
-  document.getElementById('pwModal').hidden = false;
+  openModal('pwModal');
 }
 
 async function generateNewHash() {
@@ -1647,13 +1648,17 @@ document.getElementById('saveGhBtn').addEventListener('click', saveGhFromForm);
 document.getElementById('testGhBtn').addEventListener('click', testGithubConnection);
 
 function closeAllModals() {
-  document.getElementById('modal').hidden = true;
-  document.getElementById('pwModal').hidden = true;
-  document.getElementById('catEditModal').hidden = true;
-  document.getElementById('catMgrModal').hidden = true;
-  document.getElementById('githubModal').hidden = true;
+  ['modal','pwModal','catEditModal','catMgrModal','githubModal'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) { el.hidden = true; el.style.display = 'none'; }
+  });
   state.editingId = null;
   state.editingCatSlug = null;
+}
+
+function openModal(id) {
+  const el = document.getElementById(id);
+  if (el) { el.hidden = false; el.style.display = ''; }
 }
 
 // Modal close handlers — any X / cancel closes ALL modals to prevent stacking

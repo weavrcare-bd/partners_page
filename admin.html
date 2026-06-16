@@ -1,0 +1,1678 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>닥터팔레트 파트너 관리 — 어드민</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --brand: #1a4a99;
+    --brand-light: #c5d9ff;
+    --bg: #f4f7fc;
+    --surface: #ffffff;
+    --border: rgba(0,0,0,0.08);
+    --text: #18181b;
+    --text-sub: #52525b;
+    --text-muted: #a1a1aa;
+    --danger: #c5302a;
+    --success: #1f7a3a;
+  }
+  body {
+    font-family: 'Pretendard', 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.5;
+    min-height: 100vh;
+  }
+  button, input, textarea, select { font-family: inherit; font-size: inherit; }
+  button { cursor: pointer; border: none; background: none; color: inherit; }
+  input, textarea, select {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--surface);
+    color: var(--text);
+    outline: none;
+    transition: border-color .15s, box-shadow .15s;
+  }
+  input:focus, textarea:focus, select:focus {
+    border-color: var(--brand);
+    box-shadow: 0 0 0 3px rgba(26,74,153,0.12);
+  }
+  textarea { resize: vertical; min-height: 60px; line-height: 1.6; }
+  label { display: block; font-size: 13px; font-weight: 600; color: var(--text-sub); margin-bottom: 6px; }
+
+  .btn { display:inline-flex; align-items:center; gap:6px; padding:8px 14px; border-radius:8px; font-size:13px; font-weight:600; transition:all .15s; white-space:nowrap; }
+  .btn-primary { background: var(--brand); color: #fff; box-shadow: 0 2px 6px rgba(26,74,153,0.2); }
+  .btn-primary:hover { background: #153d80; transform: translateY(-1px); }
+  .btn-secondary { background: var(--surface); color: var(--text-sub); border: 1px solid var(--border); }
+  .btn-secondary:hover { background: #f4f4f5; color: var(--text); }
+  .btn-text { color: var(--text-sub); padding: 6px 10px; font-size:13px; font-weight:500; }
+  .btn-text:hover { color: var(--text); background: #f4f4f5; border-radius:6px; }
+  .btn-text.danger { color: var(--danger); }
+  .btn-text.danger:hover { background: #fdf2f2; }
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none !important; }
+
+  .login-screen {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1.5rem;
+    background: linear-gradient(135deg, #e8f0ff 0%, var(--bg) 100%);
+  }
+  .login-box {
+    background: var(--surface);
+    border-radius: 16px;
+    padding: 2.5rem 2rem;
+    width: 100%;
+    max-width: 380px;
+    box-shadow: 0 8px 32px rgba(26,74,153,0.12);
+  }
+  .login-title { font-size: 18px; font-weight: 700; text-align: center; margin-bottom: 4px; }
+  .login-sub { font-size: 12px; text-align: center; color: var(--text-muted); margin-bottom: 1.75rem; }
+  .login-form > * + * { margin-top: 12px; }
+  .login-form button { width: 100%; justify-content: center; padding: 11px; }
+  .login-error { font-size: 12px; color: var(--danger); text-align: center; min-height: 16px; margin-top: 8px; }
+
+  .admin-header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 14px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+  .header-left { display: flex; align-items: baseline; gap: 12px; }
+  .header-left h1 { font-size: 16px; font-weight: 700; letter-spacing: -0.02em; }
+  .cards-count { font-size: 12px; color: var(--text-muted); font-weight: 500; }
+  .header-right { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+
+  .admin-body { max-width: 1100px; margin: 0 auto; padding: 24px; }
+  .toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+  .toolbar .info { font-size: 12px; color: var(--text-muted); line-height: 1.5; text-align: right; }
+
+  .cards-list { display: flex; flex-direction: column; gap: 8px; }
+  .card-row {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 16px;
+    display: grid;
+    grid-template-columns: 90px 110px 1fr auto;
+    align-items: center;
+    gap: 14px;
+    transition: border-color .15s, box-shadow .15s;
+  }
+  .card-row:hover { border-color: rgba(26,74,153,0.25); box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
+  .card-row.placeholder { background: #fafafa; border-style: dashed; }
+  .card-row-order { display: flex; align-items: center; gap: 6px; }
+  .order-btn {
+    width: 24px; height: 24px;
+    border-radius: 6px;
+    background: #f0f0f3;
+    color: var(--text-sub);
+    font-size: 13px;
+    line-height: 1;
+    transition: background .12s;
+  }
+  .order-btn:hover:not(:disabled) { background: var(--brand-light); color: var(--brand); }
+  .order-num { font-size: 12px; font-weight: 600; color: var(--text-muted); min-width: 18px; text-align: center; }
+  .card-row-tag {
+    font-size: 11px; font-weight: 600;
+    padding: 4px 10px; border-radius: 20px;
+    text-align: center; white-space: nowrap;
+    overflow: hidden; text-overflow: ellipsis;
+  }
+  .card-row-main { min-width: 0; }
+  .card-row-name { font-size: 14px; font-weight: 600; color: var(--text); margin-bottom: 2px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .card-row.placeholder .card-row-name { color: var(--text-muted); font-weight: 500; font-style: italic; }
+  .card-row-summary { font-size: 12px; color: var(--text-muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .card-row-actions { display: flex; gap: 4px; }
+
+  .empty-state { text-align: center; padding: 40px 20px; color: var(--text-muted); font-size: 14px; }
+
+  .modal {
+    position: fixed; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    z-index: 100;
+    padding: 1.5rem;
+  }
+  .modal-backdrop {
+    position: absolute; inset: 0;
+    background: rgba(0,0,0,0.4);
+    backdrop-filter: blur(2px);
+  }
+  .modal-content {
+    position: relative;
+    background: var(--surface);
+    border-radius: 14px;
+    width: 100%;
+    max-width: 560px;
+    max-height: calc(100vh - 3rem);
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 12px 48px rgba(0,0,0,0.18);
+  }
+  .modal-header { padding: 18px 20px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+  .modal-header h2 { font-size: 15px; font-weight: 700; }
+  .modal-close { width: 28px; height: 28px; border-radius: 6px; font-size: 20px; color: var(--text-muted); display: flex; align-items: center; justify-content: center; }
+  .modal-close:hover { background: #f4f4f5; color: var(--text); }
+  .modal-body { padding: 20px; overflow-y: auto; flex: 1; }
+  .modal-footer { padding: 14px 20px; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 8px; }
+
+  .form-group { margin-bottom: 16px; }
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .form-help { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
+  .form-radio-group { display: flex; gap: 8px; }
+  .form-radio {
+    flex: 1; padding: 9px 12px;
+    border: 1px solid var(--border); border-radius: 8px;
+    text-align: center; font-size: 13px; font-weight: 600;
+    color: var(--text-sub); background: var(--surface);
+    cursor: pointer; transition: all .12s;
+  }
+  .form-radio.selected { border-color: var(--brand); background: #eef4ff; color: var(--brand); }
+  .color-input { display: flex; gap: 8px; align-items: center; }
+  .color-input input[type="color"] { width: 40px; height: 40px; padding: 2px; cursor: pointer; border-radius: 6px; }
+  .desc-list-item { display: flex; gap: 6px; align-items: flex-start; margin-bottom: 6px; }
+  .desc-list-item textarea { min-height: 38px; }
+  .desc-list-item button { padding: 6px 8px; color: var(--danger); font-size: 12px; }
+
+  /* Image upload */
+  .image-upload-row { display: flex; gap: 6px; align-items: center; }
+  .image-upload-row input[type="text"] { flex: 1; }
+  .upload-btn {
+    padding: 9px 12px; border-radius: 8px;
+    background: var(--brand-light); color: var(--brand);
+    font-size: 12px; font-weight: 600; white-space: nowrap;
+    display: flex; align-items: center; gap: 4px;
+    transition: background .12s;
+  }
+  .upload-btn:hover:not(:disabled) { background: #aac6ff; }
+  .upload-btn.uploading { background: #f0f0f3; color: var(--text-muted); }
+
+  /* Category manager */
+  .cat-list { display: flex; flex-direction: column; gap: 6px; }
+  .cat-row {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 10px;
+    display: grid;
+    grid-template-columns: 56px 1fr 90px auto;
+    gap: 10px;
+    align-items: center;
+  }
+  .cat-swatch {
+    height: 30px; border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 700;
+  }
+  .cat-info { min-width: 0; }
+  .cat-label { font-size: 13px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .cat-slug { font-size: 11px; color: var(--text-muted); font-family: monospace; }
+  .cat-order { display: flex; gap: 4px; align-items: center; }
+
+  /* Icon picker */
+  .icon-grid {
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    gap: 6px;
+    margin-top: 6px;
+  }
+  .icon-tile {
+    aspect-ratio: 1; padding: 6px;
+    border: 1px solid var(--border); border-radius: 6px;
+    background: var(--surface);
+    display: flex; align-items: center; justify-content: center;
+    color: var(--text-sub);
+    cursor: pointer;
+    transition: all .1s;
+  }
+  .icon-tile svg { width: 100%; height: 100%; }
+  .icon-tile:hover { background: #f4f4f5; }
+  .icon-tile.selected { border-color: var(--brand); background: #eef4ff; color: var(--brand); }
+
+  .toast {
+    position: fixed;
+    bottom: 24px; left: 50%;
+    transform: translateX(-50%) translateY(10px);
+    background: #18181b; color: #fff;
+    padding: 10px 18px; border-radius: 24px;
+    font-size: 13px; font-weight: 500;
+    opacity: 0; pointer-events: none;
+    transition: all .25s;
+    z-index: 200;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+    max-width: calc(100vw - 2rem);
+    text-align: center;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  .toast.success { background: var(--success); }
+  .toast.error { background: var(--danger); }
+
+  .status-pill { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; }
+  .status-pill.ok { background: #d4f0d8; color: var(--success); }
+  .status-pill.no { background: #fdd8d6; color: var(--danger); }
+
+  @media (max-width:640px) {
+    .admin-header { padding: 12px 16px; }
+    .header-right { gap: 4px; }
+    .header-right .btn { padding: 6px 10px; font-size: 12px; }
+    .admin-body { padding: 16px; }
+    .card-row { grid-template-columns: 70px 90px 1fr; padding: 12px; gap: 10px; }
+    .card-row-actions { grid-column: 1 / -1; justify-content: flex-end; }
+    .form-row { grid-template-columns: 1fr; }
+    .cat-row { grid-template-columns: 44px 1fr auto; }
+    .cat-order { display: none; }
+    .icon-grid { grid-template-columns: repeat(6, 1fr); }
+    .modal-content { max-height: calc(100vh - 1rem); }
+    .modal { padding: 0.5rem; }
+  }
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="loginScreen" class="login-screen">
+  <div class="login-box">
+    <div class="login-title">닥터팔레트 파트너 관리</div>
+    <div class="login-sub">관리자 로그인이 필요합니다</div>
+    <form id="loginForm" class="login-form" autocomplete="on">
+      <input type="text" id="usernameInput" placeholder="아이디" autocomplete="username" required>
+      <input type="password" id="passwordInput" placeholder="비밀번호" autocomplete="current-password" required>
+      <button type="submit" class="btn btn-primary">로그인</button>
+      <div id="loginError" class="login-error"></div>
+    </form>
+  </div>
+</div>
+
+<!-- ADMIN -->
+<div id="adminUI" hidden>
+  <header class="admin-header">
+    <div class="header-left">
+      <h1>파트너 카드 관리</h1>
+      <span class="cards-count" id="cardsCount"></span>
+    </div>
+    <div class="header-right">
+      <button class="btn btn-secondary" id="catMgrBtn">🏷 카테고리 관리</button>
+      <button class="btn btn-secondary" id="githubBtn">⚙️ GitHub 설정</button>
+      <button class="btn btn-secondary" id="passwordBtn">비밀번호</button>
+      <button class="btn btn-secondary" id="exportJsonBtn">JSON 백업</button>
+      <button class="btn btn-secondary" id="importJsonBtn">JSON 가져오기</button>
+      <button class="btn btn-primary" id="exportHtmlBtn">📥 HTML 다운로드</button>
+      <button class="btn btn-text" id="logoutBtn">로그아웃</button>
+    </div>
+  </header>
+
+  <div class="admin-body">
+    <div class="toolbar">
+      <button class="btn btn-primary" id="addBtn">+ 새 파트너 추가</button>
+      <div class="info">
+        변경사항은 자동 저장됩니다 (브라우저 로컬).<br>
+        "HTML 다운로드" → GitHub에 업로드해야 실제 페이지에 반영됩니다.
+      </div>
+    </div>
+    <div id="cardsList" class="cards-list"></div>
+  </div>
+</div>
+
+<!-- Card Edit Modal -->
+<div id="modal" class="modal" hidden>
+  <div class="modal-backdrop" data-close></div>
+  <div class="modal-content">
+    <header class="modal-header">
+      <h2 id="modalTitle">파트너 편집</h2>
+      <button class="modal-close" data-close>×</button>
+    </header>
+    <div class="modal-body" id="modalBody"></div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" data-close>취소</button>
+      <button class="btn btn-primary" id="modalSaveBtn">저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- Category Manager Modal -->
+<div id="catMgrModal" class="modal" hidden>
+  <div class="modal-backdrop" data-cm-close></div>
+  <div class="modal-content" style="max-width:620px">
+    <header class="modal-header">
+      <h2>카테고리 관리</h2>
+      <button class="modal-close" data-cm-close>×</button>
+    </header>
+    <div class="modal-body">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;gap:10px;flex-wrap:wrap">
+        <div style="font-size:12px;color:var(--text-muted);line-height:1.5">
+          카테고리는 카드의 태그·필터칩·색상에 사용됩니다.<br>
+          순서 변경 시 필터바 표시 순서가 바뀝니다.
+        </div>
+        <button class="btn btn-primary" id="addCatBtn" style="font-size:12px;padding:6px 12px">+ 새 카테고리</button>
+      </div>
+      <div id="catList" class="cat-list"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" data-cm-close>닫기</button>
+    </div>
+  </div>
+</div>
+
+<!-- Category Edit Modal -->
+<div id="catEditModal" class="modal" hidden>
+  <div class="modal-backdrop" data-ce-close></div>
+  <div class="modal-content" style="max-width:520px">
+    <header class="modal-header">
+      <h2 id="catEditTitle">카테고리 편집</h2>
+      <button class="modal-close" data-ce-close>×</button>
+    </header>
+    <div class="modal-body" id="catEditBody"></div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" data-ce-close>취소</button>
+      <button class="btn btn-primary" id="catEditSaveBtn">저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- GitHub Settings Modal -->
+<div id="githubModal" class="modal" hidden>
+  <div class="modal-backdrop" data-gh-close></div>
+  <div class="modal-content" style="max-width:520px">
+    <header class="modal-header">
+      <h2>GitHub 설정 (이미지 업로드용)</h2>
+      <button class="modal-close" data-gh-close>×</button>
+    </header>
+    <div class="modal-body">
+      <div style="background:#fef7e6;border:1px solid #f0d878;border-radius:8px;padding:10px 12px;margin-bottom:14px;font-size:11.5px;line-height:1.6;color:#7d5b00">
+        💡 <strong>Personal Access Token 발급 방법:</strong><br>
+        1. <a href="https://github.com/settings/personal-access-tokens" target="_blank" style="color:#7d5b00;font-weight:600">github.com/settings/personal-access-tokens</a> 접속<br>
+        2. "Generate new token" → Fine-grained 선택<br>
+        3. Repository access: 해당 레포 하나만 선택<br>
+        4. Permissions → Contents: <strong>Read &amp; write</strong><br>
+        5. 생성된 토큰(ghp_... 또는 github_pat_...) 복사
+      </div>
+      <div class="form-group">
+        <label>Personal Access Token</label>
+        <input type="password" id="ghTokenInput" placeholder="github_pat_... 또는 ghp_...">
+        <div class="form-help">브라우저 localStorage에 저장됩니다. 어드민 로그인을 통한 1차 보호만 적용되니 fine-grained PAT 사용을 권장합니다.</div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Owner</label>
+          <input type="text" id="ghOwnerInput" placeholder="weavrcare-bd">
+        </div>
+        <div class="form-group">
+          <label>Repository</label>
+          <input type="text" id="ghRepoInput" placeholder="partners_page">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Branch</label>
+          <input type="text" id="ghBranchInput" placeholder="main">
+        </div>
+        <div class="form-group">
+          <label>이미지 폴더</label>
+          <input type="text" id="ghFolderInput" placeholder="logo">
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;margin-top:8px">
+        <button class="btn btn-secondary" id="testGhBtn" style="font-size:12px;padding:6px 12px">🔌 연결 테스트</button>
+        <span id="ghStatus" style="font-size:12px"></span>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" data-gh-close>닫기</button>
+      <button class="btn btn-primary" id="saveGhBtn">저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- Password Modal -->
+<div id="pwModal" class="modal" hidden>
+  <div class="modal-backdrop" data-pw-close></div>
+  <div class="modal-content" style="max-width:440px">
+    <header class="modal-header">
+      <h2>비밀번호 변경</h2>
+      <button class="modal-close" data-pw-close>×</button>
+    </header>
+    <div class="modal-body">
+      <div class="form-group">
+        <label>새 비밀번호</label>
+        <input type="password" id="newPwInput" placeholder="새 비밀번호 입력">
+        <div class="form-help">최소 4자 이상</div>
+      </div>
+      <div class="form-group">
+        <label>확인</label>
+        <input type="password" id="newPwConfirmInput" placeholder="새 비밀번호 다시 입력">
+      </div>
+      <div class="form-group">
+        <label>새 비밀번호 해시 (admin.html에 붙여넣기)</label>
+        <textarea id="newPwHashOutput" readonly placeholder="여기에 해시가 표시됩니다" style="font-family:monospace;font-size:11px"></textarea>
+        <div class="form-help">생성된 해시를 admin.html 소스의 <code>passwordHash</code> 값에 붙여넣으세요. 그 전까지는 기존 비밀번호가 유효합니다.</div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" data-pw-close>닫기</button>
+      <button class="btn btn-primary" id="generateHashBtn">해시 생성</button>
+    </div>
+  </div>
+</div>
+
+<input type="file" id="jsonFileInput" accept=".json,application/json" hidden>
+<input type="file" id="imageFileInput" accept="image/*" hidden>
+<div id="toast" class="toast"></div>
+
+<script>
+/* ════════════════════════════════════════════════════════════════
+   CONFIG — 비밀번호 변경 시 passwordHash 값만 수정하세요.
+   기본 ID/PW: kevin / weavr2026
+══════════════════════════════════════════════════════════════════ */
+const AUTH = {
+  username: "kevin",
+  passwordHash: "38075372bba7374f902d06ed61f8c2ad16d77cc979253368ddf60af8a48285fd",
+  salt: "weavr-admin-2026-salt"
+};
+
+const STORAGE_KEY = "weavr_partners_v1";
+const CAT_STORAGE_KEY = "weavr_categories_v1";
+const GH_STORAGE_KEY = "weavr_github_v1";
+const SESSION_KEY = "weavr_admin_session";
+const PARTNERS_HTML_PATH = "partners.html";
+
+/* ─── 기본 카테고리 (18개) ─── */
+const DEFAULT_CATEGORIES = {
+  payment:   { label:"결제",            bg:"#dce9ff", fg:"#1a4a99", icon:'<rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/>' },
+  marketing: { label:"DB마케팅",        bg:"#d8f0e0", fg:"#145c28", icon:'<polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/>' },
+  loan:      { label:"대출",            bg:"#ffeedd", fg:"#7a3c00", icon:'<rect x="4" y="2" width="16" height="20" rx="2"/><line x1="4" y1="9" x2="20" y2="9"/><line x1="4" y1="14" x2="20" y2="14"/><line x1="9" y1="22" x2="9" y2="18"/><line x1="15" y1="22" x2="15" y2="18"/>' },
+  interior:  { label:"인테리어",        bg:"#fce4ef", fg:"#880e47", icon:'<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/>' },
+  web:       { label:"홈페이지",        bg:"#ede8ff", fg:"#4a1a99", icon:'<circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>' },
+  ai:        { label:"AI 챗봇",         bg:"#f0e8ff", fg:"#5a1a99", icon:'<rect x="3" y="11" width="18" height="10" rx="2"/><circle cx="12" cy="5" r="2"/><path d="M12 7v4"/><line x1="8" y1="16" x2="8" y2="16"/><line x1="16" y1="16" x2="16" y2="16"/>' },
+  internet:  { label:"인터넷",          bg:"#d8f4f4", fg:"#005f5f", icon:'<path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><circle cx="12" cy="20" r="1"/>' },
+  law:       { label:"법률",            bg:"#dde0ed", fg:"#252e6b", icon:'<line x1="12" y1="3" x2="12" y2="21"/><path d="M5 7l-3 8h6z"/><path d="M19 7l-3 8h6z"/><path d="M5 7l7-3 7 3"/><line x1="7" y1="21" x2="17" y2="21"/>' },
+  labor:     { label:"노무",            bg:"#ead7e8", fg:"#5c2c5c", icon:'<circle cx="9" cy="7" r="4"/><path d="M3 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/><path d="M16 3.5a4 4 0 0 1 0 7"/><path d="M21 21v-2a4 4 0 0 0-3-3.87"/>' },
+  tax:       { label:"세무",            bg:"#fff0ce", fg:"#7d5b00", icon:'<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="12" x2="12" y2="18"/><path d="M10 14h3a1.5 1.5 0 0 1 0 3h-3"/><path d="M10 14h3a1.5 1.5 0 0 0 0-3h-3"/>' },
+  location:  { label:"입지",            bg:"#e6edcd", fg:"#4d5810", icon:'<path d="M20 10c0 7-8 12-8 12s-8-5-8-12a8 8 0 0 1 16 0z"/><circle cx="12" cy="10" r="3"/>' },
+  medicine:  { label:"약품",            bg:"#fdd0d8", fg:"#8b1e3a", icon:'<path d="M10.5 20.5L20.5 10.5a4.95 4.95 0 0 0-7-7L3.5 13.5a4.95 4.95 0 0 0 7 7z"/><line x1="8.5" y1="8.5" x2="15.5" y2="15.5"/>' },
+  equipment: { label:"의료장비 및 기기", bg:"#dde6ed", fg:"#1a3a5c", icon:'<polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>' },
+  used:      { label:"중고의료기기",     bg:"#e8e0d4", fg:"#5c4818", icon:'<path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/><path d="M3 21v-5h5"/>' },
+  cleaning:  { label:"청소",            bg:"#d8e8f5", fg:"#1a4d70", icon:'<path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/><path d="M19 4l.7 1.6L21 6.5l-1.3.9L19 9l-.7-1.6L17 6.5l1.3-.9z"/><path d="M6 16l.7 1.6L8 18.5l-1.3.9L6 21l-.7-1.6L4 18.5l1.3-.9z"/>' },
+  water:     { label:"정수기",          bg:"#d4eef0", fg:"#0d4a5b", icon:'<path d="M12 22c4 0 8-3 8-8 0-4-8-12-8-12S4 10 4 14c0 5 4 8 8 8z"/>' },
+  coffee:    { label:"커피머신",        bg:"#e8d8c8", fg:"#5e3614", icon:'<path d="M18 8h1a3 3 0 0 1 0 6h-1"/><rect x="2" y="8" width="16" height="11" rx="2"/><line x1="6" y1="2" x2="6" y2="5"/><line x1="10" y1="2" x2="10" y2="5"/><line x1="14" y1="2" x2="14" y2="5"/>' },
+  phone:     { label:"전화기",          bg:"#dde0e8", fg:"#3a3a5e", icon:'<path d="M22 16.92v3a2 2 0 0 1-2 2c-9 0-18-9-18-18a2 2 0 0 1 2-2h3a2 2 0 0 1 2 1.7c.2 1 .4 2 .7 3a2 2 0 0 1-.5 2L8 9.5a16 16 0 0 0 6 6l1.8-1.2a2 2 0 0 1 2-.5c1 .3 2 .5 3 .7a2 2 0 0 1 1.7 2z"/>' }
+};
+
+/* ─── 아이콘 프리셋 (카테고리 신규 추가 시 선택용) ─── */
+const ICON_PRESETS = [
+  { name:"카드",      svg:'<rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/>' },
+  { name:"빌딩",      svg:'<rect x="4" y="2" width="16" height="20" rx="2"/><line x1="4" y1="9" x2="20" y2="9"/><line x1="4" y1="14" x2="20" y2="14"/><line x1="9" y1="22" x2="9" y2="18"/><line x1="15" y1="22" x2="15" y2="18"/>' },
+  { name:"메가폰",    svg:'<polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/>' },
+  { name:"차트",      svg:'<line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>' },
+  { name:"모니터",    svg:'<rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>' },
+  { name:"WiFi",      svg:'<path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><circle cx="12" cy="20" r="1"/>' },
+  { name:"하트",      svg:'<path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>' },
+  { name:"심박",      svg:'<polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>' },
+  { name:"약",        svg:'<path d="M10.5 20.5L20.5 10.5a4.95 4.95 0 0 0-7-7L3.5 13.5a4.95 4.95 0 0 0 7 7z"/><line x1="8.5" y1="8.5" x2="15.5" y2="15.5"/>' },
+  { name:"사용자",    svg:'<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>' },
+  { name:"사용자들",  svg:'<circle cx="9" cy="7" r="4"/><path d="M3 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/><path d="M16 3.5a4 4 0 0 1 0 7"/><path d="M21 21v-2a4 4 0 0 0-3-3.87"/>' },
+  { name:"가방",      svg:'<rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>' },
+  { name:"문서",      svg:'<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>' },
+  { name:"도구",      svg:'<path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>' },
+  { name:"설정",      svg:'<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>' },
+  { name:"패키지",    svg:'<line x1="16.5" y1="9.4" x2="7.5" y2="4.21"/><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/>' },
+  { name:"위치",      svg:'<path d="M20 10c0 7-8 12-8 12s-8-5-8-12a8 8 0 0 1 16 0z"/><circle cx="12" cy="10" r="3"/>' },
+  { name:"전화",      svg:'<path d="M22 16.92v3a2 2 0 0 1-2 2c-9 0-18-9-18-18a2 2 0 0 1 2-2h3a2 2 0 0 1 2 1.7c.2 1 .4 2 .7 3a2 2 0 0 1-.5 2L8 9.5a16 16 0 0 0 6 6l1.8-1.2a2 2 0 0 1 2-.5c1 .3 2 .5 3 .7a2 2 0 0 1 1.7 2z"/>' },
+  { name:"커피",      svg:'<path d="M18 8h1a3 3 0 0 1 0 6h-1"/><rect x="2" y="8" width="16" height="11" rx="2"/><line x1="6" y1="2" x2="6" y2="5"/><line x1="10" y1="2" x2="10" y2="5"/><line x1="14" y1="2" x2="14" y2="5"/>' },
+  { name:"물방울",    svg:'<path d="M12 22c4 0 8-3 8-8 0-4-8-12-8-12S4 10 4 14c0 5 4 8 8 8z"/>' },
+  { name:"별",        svg:'<polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>' },
+  { name:"체크",      svg:'<polyline points="20 6 9 17 4 12"/>' },
+  { name:"보호",      svg:'<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>' },
+  { name:"물음",      svg:'<circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/>' }
+];
+
+/* ─── 초기 18개 카드 ─── */
+const DEFAULT_PARTNERS = [
+  { id:"p001", type:"real", category:"payment", name:"한국결제시스템",
+    logoType:"text", logoBg:"#0046b0", logoText:"한국\n결제", logoTextColor:"#fff", logoUrl:"",
+    summary:"의료기관에 특화된 올인원 결제 솔루션",
+    description:["카드·현금·간편결제를 하나로 통합해 원무 업무를 간소화합니다.","닥터팔레트와 직접 연동되어 정산 오류 없는 운영 환경을 제공합니다.","VAN·PG사 계약 대행을 통해 최적의 수수료 조건을 지원합니다."],
+    linkUrl:"#" },
+  { id:"p002", type:"real", category:"marketing", name:"우상향마케팅",
+    logoType:"image", logoBg:"#1a7a3a", logoUrl:"https://raw.githubusercontent.com/weavrcare-bd/partners_page/main/logo/woosang.png",
+    summary:"미용의료 전문 DB 마케팅으로 신환 유입 극대화",
+    description:["피부과·성형외과에 특화된 채널별 맞춤 광고 전략을 제안합니다.","닥터팔레트 CRM과 연동해 광고 성과를 데이터 기반으로 분석합니다.","병원별 최적 마케팅 플랜으로 비용 대비 효율을 극대화합니다."],
+    linkUrl:"#" },
+  { id:"p003", type:"real", category:"loan", name:"BNK 경남은행 · KN파트너스",
+    logoType:"image", logoBg:"#ffffff", logoUrl:"https://raw.githubusercontent.com/weavrcare-bd/partners_page/main/logo/knb.png",
+    summary:"의료기관 맞춤 금융 솔루션, BNK 공식 파트너",
+    description:["개원 자금부터 시설 투자·운영 자금까지 금융 상품을 비교·안내합니다.","전담 컨설턴트가 서류 준비부터 실행까지 원스톱으로 지원합니다.","닥터팔레트 도입 고객 대상 우대 금리 상담이 가능합니다."],
+    linkUrl:"#" },
+  { id:"p004", type:"placeholder", category:"interior" },
+  { id:"p005", type:"real", category:"web", name:"닥터팔레트 home",
+    logoType:"image", logoBg:"#ffffff", logoUrl:"https://raw.githubusercontent.com/weavrcare-bd/partners_page/main/logo/drp.png",
+    summary:"EMR 연동 병원 홈페이지 제작 플랫폼",
+    description:["피부과·성형외과에 특화된 병원 홈페이지 제작 서비스입니다.","닥터팔레트 EMR/CRM과 연동되어 시술·예약·이벤트가 실시간 반영됩니다.","의료광고법 준수 설계와 B&A 갤러리, 다국어 지원까지 제공합니다."],
+    linkUrl:"https://dr.pltt.cloud/palette_home" },
+  { id:"p006", type:"real", category:"ai", name:"서티라이프",
+    logoType:"image", logoBg:"#ffffff", logoUrl:"https://raw.githubusercontent.com/weavrcare-bd/partners_page/main/logo/certi.png",
+    summary:"24시간 환자 상담을 자동화하는 의료 AI 플랫폼",
+    description:["예약·상담 등 반복 업무를 AI가 24시간 자동 처리합니다.","카카오 알림톡 연동으로 환자 소통을 완전 자동화합니다.","닥터팔레트 CRM과 연계해 진료·마케팅 효율을 높입니다."],
+    linkUrl:"https://certi.life/" },
+  { id:"p007", type:"placeholder", category:"internet" },
+  { id:"p008", type:"placeholder", category:"law" },
+  { id:"p009", type:"placeholder", category:"labor" },
+  { id:"p010", type:"placeholder", category:"tax" },
+  { id:"p011", type:"placeholder", category:"location" },
+  { id:"p012", type:"placeholder", category:"medicine" },
+  { id:"p013", type:"placeholder", category:"equipment" },
+  { id:"p014", type:"placeholder", category:"used" },
+  { id:"p015", type:"placeholder", category:"cleaning" },
+  { id:"p016", type:"placeholder", category:"water" },
+  { id:"p017", type:"placeholder", category:"coffee" },
+  { id:"p018", type:"placeholder", category:"phone" }
+];
+
+const DEFAULT_GH = {
+  token: "",
+  owner: "weavrcare-bd",
+  repo: "partners_page",
+  branch: "main",
+  folder: "logo"
+};
+
+/* ════════════════════════════════════════════════════════════════
+   STATE
+══════════════════════════════════════════════════════════════════ */
+let state = {
+  partners: [],
+  categories: {},
+  editingId: null,
+  editingCatSlug: null
+};
+
+function loadAll() {
+  // Partners
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    state.partners = raw ? JSON.parse(raw) : DEFAULT_PARTNERS.slice();
+    if (!Array.isArray(state.partners)) state.partners = DEFAULT_PARTNERS.slice();
+  } catch(e) { state.partners = DEFAULT_PARTNERS.slice(); }
+
+  // Categories
+  try {
+    const raw = localStorage.getItem(CAT_STORAGE_KEY);
+    state.categories = raw ? JSON.parse(raw) : JSON.parse(JSON.stringify(DEFAULT_CATEGORIES));
+    if (typeof state.categories !== 'object' || !state.categories) {
+      state.categories = JSON.parse(JSON.stringify(DEFAULT_CATEGORIES));
+    }
+  } catch(e) { state.categories = JSON.parse(JSON.stringify(DEFAULT_CATEGORIES)); }
+}
+function savePartners() { localStorage.setItem(STORAGE_KEY, JSON.stringify(state.partners)); }
+function saveCategories() { localStorage.setItem(CAT_STORAGE_KEY, JSON.stringify(state.categories)); }
+
+function getCatList() {
+  // Returns array of [slug, cat] in insertion order
+  return Object.entries(state.categories);
+}
+function getCat(slug) {
+  return state.categories[slug] || { label:'?', bg:'#eee', fg:'#888', icon:'' };
+}
+
+/* ─── GitHub settings ─── */
+function loadGh() {
+  try {
+    const raw = localStorage.getItem(GH_STORAGE_KEY);
+    return raw ? { ...DEFAULT_GH, ...JSON.parse(raw) } : { ...DEFAULT_GH };
+  } catch(e) { return { ...DEFAULT_GH }; }
+}
+function saveGh(gh) {
+  localStorage.setItem(GH_STORAGE_KEY, JSON.stringify(gh));
+}
+
+/* ════════════════════════════════════════════════════════════════
+   AUTH
+══════════════════════════════════════════════════════════════════ */
+async function hashPassword(pw) {
+  const data = new TextEncoder().encode(AUTH.salt + pw);
+  const buf = await crypto.subtle.digest('SHA-256', data);
+  return Array.from(new Uint8Array(buf))
+    .map(b => b.toString(16).padStart(2,'0')).join('');
+}
+async function attemptLogin(username, password) {
+  if (username !== AUTH.username) return false;
+  return (await hashPassword(password)) === AUTH.passwordHash;
+}
+function isLoggedIn() { return sessionStorage.getItem(SESSION_KEY) === '1'; }
+function setLoggedIn() { sessionStorage.setItem(SESSION_KEY, '1'); }
+function logout() { sessionStorage.removeItem(SESSION_KEY); location.reload(); }
+
+/* ════════════════════════════════════════════════════════════════
+   HELPERS
+══════════════════════════════════════════════════════════════════ */
+function escapeHtml(s) {
+  return String(s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function genId() {
+  return 'p' + Date.now().toString(36) + Math.random().toString(36).slice(2,6);
+}
+function slugify(s) {
+  return String(s||'').toLowerCase().trim()
+    .replace(/[^a-z0-9_-]/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '');
+}
+function sanitizeFilename(name) {
+  const idx = name.lastIndexOf('.');
+  let base = (idx > 0 ? name.slice(0, idx) : name).toLowerCase();
+  const ext = (idx > 0 ? name.slice(idx+1) : 'png').toLowerCase().replace(/[^a-z0-9]/g,'');
+  base = base.replace(/[^a-z0-9_-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+  return `${base || 'image-' + Date.now()}.${ext || 'png'}`;
+}
+
+/* ════════════════════════════════════════════════════════════════
+   RENDER: CARDS LIST
+══════════════════════════════════════════════════════════════════ */
+function renderCardsList() {
+  const list = document.getElementById('cardsList');
+  const total = state.partners.length;
+  document.getElementById('cardsCount').textContent = `${total}개`;
+
+  if (total === 0) {
+    list.innerHTML = '<div class="empty-state">파트너 카드가 없습니다. "+ 새 파트너 추가"로 시작하세요.</div>';
+    return;
+  }
+
+  list.innerHTML = state.partners.map((p, i) => {
+    const cat = getCat(p.category);
+    const isPlaceholder = p.type === 'placeholder';
+    const nameDisplay = isPlaceholder ? '(파트너사 준비 중)' : escapeHtml(p.name || '(이름 없음)');
+    const summaryDisplay = isPlaceholder ? '' : escapeHtml(p.summary || '');
+    return `
+      <div class="card-row${isPlaceholder?' placeholder':''}" data-id="${p.id}">
+        <div class="card-row-order">
+          <button class="order-btn" data-action="up" ${i===0?'disabled':''} title="위로">↑</button>
+          <span class="order-num">${i+1}</span>
+          <button class="order-btn" data-action="down" ${i===total-1?'disabled':''} title="아래로">↓</button>
+        </div>
+        <div class="card-row-tag" style="background:${cat.bg};color:${cat.fg};">${escapeHtml(cat.label)}</div>
+        <div class="card-row-main">
+          <div class="card-row-name">${nameDisplay}</div>
+          <div class="card-row-summary">${summaryDisplay}</div>
+        </div>
+        <div class="card-row-actions">
+          <button class="btn-text" data-action="edit">편집</button>
+          <button class="btn-text danger" data-action="delete">삭제</button>
+        </div>
+      </div>`;
+  }).join('');
+
+  list.querySelectorAll('.card-row').forEach(row => {
+    const id = row.dataset.id;
+    row.querySelector('[data-action="up"]')?.addEventListener('click', () => moveCard(id, -1));
+    row.querySelector('[data-action="down"]')?.addEventListener('click', () => moveCard(id, +1));
+    row.querySelector('[data-action="edit"]').addEventListener('click', () => openEditModal(id));
+    row.querySelector('[data-action="delete"]').addEventListener('click', () => deleteCard(id));
+  });
+}
+
+function moveCard(id, dir) {
+  const i = state.partners.findIndex(p => p.id === id);
+  if (i < 0) return;
+  const j = i + dir;
+  if (j < 0 || j >= state.partners.length) return;
+  [state.partners[i], state.partners[j]] = [state.partners[j], state.partners[i]];
+  savePartners();
+  renderCardsList();
+}
+
+function deleteCard(id) {
+  const p = state.partners.find(x => x.id === id);
+  if (!p) return;
+  const label = p.type === 'placeholder'
+    ? `[${getCat(p.category).label}] 카테고리 카드`
+    : `"${p.name}" 카드`;
+  if (!confirm(`${label}를 삭제하시겠습니까?`)) return;
+  state.partners = state.partners.filter(x => x.id !== id);
+  savePartners();
+  renderCardsList();
+  showToast('삭제되었습니다', 'success');
+}
+
+/* ════════════════════════════════════════════════════════════════
+   CARD EDIT MODAL
+══════════════════════════════════════════════════════════════════ */
+function openAddModal() {
+  const firstCat = getCatList()[0]?.[0] || 'payment';
+  const newCard = {
+    id: genId(),
+    type: 'real',  // 기본을 실제 파트너로
+    category: firstCat,
+    name: '',
+    logoType: 'image',
+    logoBg: '#ffffff',
+    logoUrl: '',
+    logoText: '',
+    logoTextColor: '#ffffff',
+    summary: '',
+    description: ['', '', ''],
+    linkUrl: '#'
+  };
+  state.editingId = newCard.id;
+  state.partners.push(newCard);
+  savePartners();
+  renderCardsList();
+  openEditModal(newCard.id, true);
+}
+
+function openEditModal(id, isNew=false) {
+  const p = state.partners.find(x => x.id === id);
+  if (!p) return;
+  state.editingId = id;
+
+  document.getElementById('modalTitle').textContent = isNew ? '새 파트너 추가' : '파트너 편집';
+  document.getElementById('modalBody').innerHTML = buildFormHtml(p);
+  document.getElementById('modal').hidden = false;
+  wireFormEvents(p);
+
+  if (isNew) setTimeout(() => document.getElementById('nameInput')?.focus(), 50);
+}
+
+function buildFormHtml(p) {
+  const catOptions = getCatList()
+    .map(([slug, c]) => `<option value="${slug}"${slug===p.category?' selected':''}>${escapeHtml(c.label)}</option>`)
+    .join('');
+
+  return `
+    <div class="form-group">
+      <label>카드 유형</label>
+      <div class="form-radio-group" id="typeRadio">
+        <div class="form-radio${p.type==='real'?' selected':''}" data-value="real">실제 파트너</div>
+        <div class="form-radio${p.type==='placeholder'?' selected':''}" data-value="placeholder">카테고리 (준비 중)</div>
+      </div>
+      <div class="form-help">"카테고리"는 업체가 정해지지 않은 자리표시 카드입니다.</div>
+    </div>
+
+    <div class="form-group">
+      <label>카테고리</label>
+      <select id="catSelect">${catOptions}</select>
+    </div>
+
+    <div id="realFields" ${p.type==='placeholder'?'hidden':''}>
+      <div class="form-group">
+        <label>업체명 *</label>
+        <input type="text" id="nameInput" value="${escapeHtml(p.name||'')}" placeholder="예: 한국결제시스템">
+      </div>
+
+      <div class="form-group">
+        <label>로고 유형</label>
+        <div class="form-radio-group" id="logoTypeRadio">
+          <div class="form-radio${(p.logoType||'image')==='image'?' selected':''}" data-value="image">이미지 URL</div>
+          <div class="form-radio${(p.logoType||'image')==='text'?' selected':''}" data-value="text">텍스트 (배경색 위)</div>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>로고 배경색</label>
+        <div class="color-input">
+          <input type="color" id="logoBgPicker" value="${p.logoBg||'#ffffff'}">
+          <input type="text" id="logoBgInput" value="${escapeHtml(p.logoBg||'#ffffff')}" placeholder="#ffffff">
+        </div>
+        <div class="form-help">흰색 로고는 어두운 배경 권장 (예: #1a7a3a). 일반 컬러 로고는 흰색(#ffffff).</div>
+      </div>
+
+      <div id="logoImageFields" ${(p.logoType||'image')==='text'?'hidden':''}>
+        <div class="form-group">
+          <label>로고 이미지</label>
+          <div class="image-upload-row">
+            <input type="text" id="logoUrlInput" value="${escapeHtml(p.logoUrl||'')}" placeholder="https://raw.githubusercontent.com/.../logo.png">
+            <button type="button" class="upload-btn" id="uploadImageBtn">📤 업로드</button>
+          </div>
+          <div class="form-help">"업로드" 클릭 → GitHub에 자동 업로드. (GitHub 설정 필요)</div>
+        </div>
+      </div>
+
+      <div id="logoTextFields" ${(p.logoType||'image')==='image'?'hidden':''}>
+        <div class="form-row">
+          <div class="form-group">
+            <label>로고 텍스트</label>
+            <textarea id="logoTextInput" rows="2" placeholder="한국&#10;결제">${escapeHtml(p.logoText||'')}</textarea>
+            <div class="form-help">줄바꿈은 Enter</div>
+          </div>
+          <div class="form-group">
+            <label>텍스트 색상</label>
+            <div class="color-input">
+              <input type="color" id="logoTextColorPicker" value="${p.logoTextColor||'#ffffff'}">
+              <input type="text" id="logoTextColorInput" value="${escapeHtml(p.logoTextColor||'#ffffff')}">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>한 줄 요약 *</label>
+        <input type="text" id="summaryInput" value="${escapeHtml(p.summary||'')}" placeholder="예: 의료기관에 특화된 올인원 결제 솔루션">
+      </div>
+
+      <div class="form-group">
+        <label>설명 항목</label>
+        <div id="descList">
+          ${((p.description&&p.description.length)?p.description:['']).map((d, i) => `
+            <div class="desc-list-item" data-index="${i}">
+              <textarea rows="2" placeholder="설명 한 줄">${escapeHtml(d)}</textarea>
+              <button type="button" data-action="remove-desc">×</button>
+            </div>
+          `).join('')}
+        </div>
+        <button type="button" class="btn btn-secondary" id="addDescBtn" style="margin-top:6px;font-size:12px;padding:6px 12px">+ 설명 추가</button>
+      </div>
+
+      <div class="form-group">
+        <label>"문의하기" 링크 URL</label>
+        <input type="text" id="linkUrlInput" value="${escapeHtml(p.linkUrl||'#')}" placeholder="https://example.com 또는 #">
+      </div>
+    </div>
+  `;
+}
+
+function wireFormEvents(p) {
+  document.querySelectorAll('#typeRadio .form-radio').forEach(r => {
+    r.addEventListener('click', () => {
+      document.querySelectorAll('#typeRadio .form-radio').forEach(x => x.classList.remove('selected'));
+      r.classList.add('selected');
+      document.getElementById('realFields').hidden = (r.dataset.value === 'placeholder');
+    });
+  });
+
+  document.querySelectorAll('#logoTypeRadio .form-radio').forEach(r => {
+    r.addEventListener('click', () => {
+      document.querySelectorAll('#logoTypeRadio .form-radio').forEach(x => x.classList.remove('selected'));
+      r.classList.add('selected');
+      const v = r.dataset.value;
+      document.getElementById('logoImageFields').hidden = (v !== 'image');
+      document.getElementById('logoTextFields').hidden = (v !== 'text');
+    });
+  });
+
+  function syncColor(pickerId, inputId) {
+    const picker = document.getElementById(pickerId);
+    const input = document.getElementById(inputId);
+    if (!picker || !input) return;
+    picker.addEventListener('input', () => { input.value = picker.value; });
+    input.addEventListener('input', () => {
+      if (/^#[0-9a-fA-F]{6}$/.test(input.value)) picker.value = input.value;
+    });
+  }
+  syncColor('logoBgPicker', 'logoBgInput');
+  syncColor('logoTextColorPicker', 'logoTextColorInput');
+
+  const descList = document.getElementById('descList');
+  if (descList) {
+    document.getElementById('addDescBtn').addEventListener('click', () => {
+      const div = document.createElement('div');
+      div.className = 'desc-list-item';
+      div.innerHTML = `<textarea rows="2" placeholder="설명 한 줄"></textarea><button type="button" data-action="remove-desc">×</button>`;
+      descList.appendChild(div);
+      div.querySelector('[data-action="remove-desc"]').addEventListener('click', () => div.remove());
+    });
+    descList.querySelectorAll('[data-action="remove-desc"]').forEach(btn => {
+      btn.addEventListener('click', () => btn.parentElement.remove());
+    });
+  }
+
+  // Image upload
+  const uploadBtn = document.getElementById('uploadImageBtn');
+  if (uploadBtn) uploadBtn.addEventListener('click', triggerImageUpload);
+}
+
+function readFormToCard() {
+  const id = state.editingId;
+  const p = state.partners.find(x => x.id === id);
+  if (!p) return null;
+
+  const type = document.querySelector('#typeRadio .form-radio.selected').dataset.value;
+  const category = document.getElementById('catSelect').value;
+
+  if (type === 'placeholder') {
+    return { id, type:'placeholder', category };
+  }
+
+  const logoType = document.querySelector('#logoTypeRadio .form-radio.selected').dataset.value;
+  const descTextareas = document.querySelectorAll('#descList textarea');
+  const description = Array.from(descTextareas).map(t => t.value.trim()).filter(Boolean);
+
+  return {
+    id, type:'real', category,
+    name: document.getElementById('nameInput').value.trim(),
+    logoType,
+    logoBg: document.getElementById('logoBgInput').value.trim() || '#ffffff',
+    logoUrl: logoType === 'image' ? document.getElementById('logoUrlInput').value.trim() : '',
+    logoText: logoType === 'text' ? document.getElementById('logoTextInput').value : '',
+    logoTextColor: logoType === 'text' ? (document.getElementById('logoTextColorInput').value.trim() || '#ffffff') : '#ffffff',
+    summary: document.getElementById('summaryInput').value.trim(),
+    description,
+    linkUrl: document.getElementById('linkUrlInput').value.trim() || '#'
+  };
+}
+
+function saveModal() {
+  const updated = readFormToCard();
+  if (!updated) return;
+  if (updated.type === 'real' && !updated.name) {
+    showToast('업체명은 필수입니다', 'error');
+    return;
+  }
+  const i = state.partners.findIndex(p => p.id === updated.id);
+  if (i >= 0) state.partners[i] = updated;
+  savePartners();
+  renderCardsList();
+  closeModal();
+  showToast('저장되었습니다', 'success');
+}
+
+function closeModal() {
+  document.getElementById('modal').hidden = true;
+  state.editingId = null;
+}
+
+/* ════════════════════════════════════════════════════════════════
+   GITHUB IMAGE UPLOAD
+══════════════════════════════════════════════════════════════════ */
+function triggerImageUpload() {
+  const gh = loadGh();
+  if (!gh.token) {
+    showToast('먼저 GitHub 설정에서 토큰을 등록하세요', 'error');
+    setTimeout(openGithubSettings, 800);
+    return;
+  }
+  document.getElementById('imageFileInput').click();
+}
+
+async function handleImageFile(e) {
+  const file = e.target.files[0];
+  e.target.value = '';
+  if (!file) return;
+
+  const gh = loadGh();
+  if (!gh.token) { showToast('GitHub 토큰이 없습니다', 'error'); return; }
+
+  if (file.size > 5 * 1024 * 1024) {
+    showToast('이미지가 너무 큽니다 (최대 5MB)', 'error');
+    return;
+  }
+
+  const btn = document.getElementById('uploadImageBtn');
+  if (btn) {
+    btn.disabled = true;
+    btn.classList.add('uploading');
+    btn.textContent = '⏳ 업로드 중...';
+  }
+
+  try {
+    const filename = sanitizeFilename(file.name);
+    const path = `${gh.folder}/${filename}`;
+    const base64 = await fileToBase64(file);
+
+    // Check if file exists (need sha for update)
+    let existingSha = null;
+    try {
+      const checkRes = await fetch(`https://api.github.com/repos/${gh.owner}/${gh.repo}/contents/${path}?ref=${gh.branch}`, {
+        headers: { Authorization: `Bearer ${gh.token}`, Accept: 'application/vnd.github+json' }
+      });
+      if (checkRes.ok) {
+        const info = await checkRes.json();
+        existingSha = info.sha;
+      }
+    } catch(e) { /* ignore */ }
+
+    const body = {
+      message: `Upload ${filename} via admin`,
+      content: base64,
+      branch: gh.branch
+    };
+    if (existingSha) body.sha = existingSha;
+
+    const res = await fetch(`https://api.github.com/repos/${gh.owner}/${gh.repo}/contents/${path}`, {
+      method: 'PUT',
+      headers: {
+        Authorization: `Bearer ${gh.token}`,
+        Accept: 'application/vnd.github+json',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(body)
+    });
+
+    if (!res.ok) {
+      const errBody = await res.text();
+      throw new Error(`${res.status}: ${errBody.slice(0,200)}`);
+    }
+
+    const rawUrl = `https://raw.githubusercontent.com/${gh.owner}/${gh.repo}/${gh.branch}/${path}`;
+    document.getElementById('logoUrlInput').value = rawUrl;
+    showToast(`업로드 완료: ${filename}${existingSha ? ' (덮어쓰기)' : ''}`, 'success');
+  } catch(err) {
+    showToast(`업로드 실패: ${err.message}`, 'error');
+    console.error(err);
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.classList.remove('uploading');
+      btn.textContent = '📤 업로드';
+    }
+  }
+}
+
+function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = reader.result;
+      const base64 = result.split(',')[1];
+      resolve(base64);
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+/* ════════════════════════════════════════════════════════════════
+   GITHUB SETTINGS MODAL
+══════════════════════════════════════════════════════════════════ */
+function openGithubSettings() {
+  const gh = loadGh();
+  document.getElementById('ghTokenInput').value = gh.token;
+  document.getElementById('ghOwnerInput').value = gh.owner;
+  document.getElementById('ghRepoInput').value = gh.repo;
+  document.getElementById('ghBranchInput').value = gh.branch;
+  document.getElementById('ghFolderInput').value = gh.folder;
+  document.getElementById('ghStatus').innerHTML = '';
+  document.getElementById('githubModal').hidden = false;
+}
+
+function saveGhFromForm() {
+  const gh = {
+    token: document.getElementById('ghTokenInput').value.trim(),
+    owner: document.getElementById('ghOwnerInput').value.trim() || DEFAULT_GH.owner,
+    repo: document.getElementById('ghRepoInput').value.trim() || DEFAULT_GH.repo,
+    branch: document.getElementById('ghBranchInput').value.trim() || DEFAULT_GH.branch,
+    folder: document.getElementById('ghFolderInput').value.trim().replace(/^\/|\/$/g,'') || DEFAULT_GH.folder
+  };
+  saveGh(gh);
+  showToast('GitHub 설정이 저장되었습니다', 'success');
+  document.getElementById('githubModal').hidden = true;
+}
+
+async function testGithubConnection() {
+  const gh = {
+    token: document.getElementById('ghTokenInput').value.trim(),
+    owner: document.getElementById('ghOwnerInput').value.trim() || DEFAULT_GH.owner,
+    repo: document.getElementById('ghRepoInput').value.trim() || DEFAULT_GH.repo
+  };
+  const statusEl = document.getElementById('ghStatus');
+  if (!gh.token) {
+    statusEl.innerHTML = '<span class="status-pill no">토큰 입력 필요</span>';
+    return;
+  }
+  statusEl.innerHTML = '<span style="color:var(--text-muted)">확인 중...</span>';
+  try {
+    const res = await fetch(`https://api.github.com/repos/${gh.owner}/${gh.repo}`, {
+      headers: { Authorization: `Bearer ${gh.token}`, Accept: 'application/vnd.github+json' }
+    });
+    if (res.ok) {
+      statusEl.innerHTML = '<span class="status-pill ok">✓ 연결 성공</span>';
+    } else if (res.status === 404) {
+      statusEl.innerHTML = '<span class="status-pill no">레포를 못 찾음 (404)</span>';
+    } else if (res.status === 401) {
+      statusEl.innerHTML = '<span class="status-pill no">토큰 무효 (401)</span>';
+    } else if (res.status === 403) {
+      statusEl.innerHTML = '<span class="status-pill no">권한 부족 (403)</span>';
+    } else {
+      statusEl.innerHTML = `<span class="status-pill no">오류 ${res.status}</span>`;
+    }
+  } catch(err) {
+    statusEl.innerHTML = `<span class="status-pill no">네트워크 오류</span>`;
+  }
+}
+
+/* ════════════════════════════════════════════════════════════════
+   CATEGORY MANAGER
+══════════════════════════════════════════════════════════════════ */
+function openCategoryManager() {
+  renderCatList();
+  document.getElementById('catMgrModal').hidden = false;
+}
+
+function renderCatList() {
+  const list = document.getElementById('catList');
+  const entries = getCatList();
+  if (entries.length === 0) {
+    list.innerHTML = '<div class="empty-state">카테고리가 없습니다.</div>';
+    return;
+  }
+  list.innerHTML = entries.map(([slug, c], i) => `
+    <div class="cat-row" data-slug="${escapeHtml(slug)}">
+      <div class="cat-swatch" style="background:${c.bg};color:${c.fg}">Aa</div>
+      <div class="cat-info">
+        <div class="cat-label">${escapeHtml(c.label)}</div>
+        <div class="cat-slug">${escapeHtml(slug)}</div>
+      </div>
+      <div class="cat-order">
+        <button class="order-btn" data-cat-action="up" ${i===0?'disabled':''}>↑</button>
+        <button class="order-btn" data-cat-action="down" ${i===entries.length-1?'disabled':''}>↓</button>
+      </div>
+      <div>
+        <button class="btn-text" data-cat-action="edit">편집</button>
+        <button class="btn-text danger" data-cat-action="delete">삭제</button>
+      </div>
+    </div>
+  `).join('');
+
+  list.querySelectorAll('.cat-row').forEach(row => {
+    const slug = row.dataset.slug;
+    row.querySelector('[data-cat-action="up"]')?.addEventListener('click', () => moveCat(slug, -1));
+    row.querySelector('[data-cat-action="down"]')?.addEventListener('click', () => moveCat(slug, +1));
+    row.querySelector('[data-cat-action="edit"]').addEventListener('click', () => openCatEdit(slug));
+    row.querySelector('[data-cat-action="delete"]').addEventListener('click', () => deleteCat(slug));
+  });
+}
+
+function moveCat(slug, dir) {
+  const entries = getCatList();
+  const i = entries.findIndex(([s]) => s === slug);
+  if (i < 0) return;
+  const j = i + dir;
+  if (j < 0 || j >= entries.length) return;
+  [entries[i], entries[j]] = [entries[j], entries[i]];
+  state.categories = Object.fromEntries(entries);
+  saveCategories();
+  renderCatList();
+}
+
+function deleteCat(slug) {
+  const cat = getCat(slug);
+  const usedBy = state.partners.filter(p => p.category === slug);
+  if (usedBy.length > 0) {
+    if (!confirm(`"${cat.label}" 카테고리를 사용 중인 카드가 ${usedBy.length}개 있습니다.\n삭제하면 이 카드들도 함께 삭제됩니다.\n계속하시겠습니까?`)) return;
+    state.partners = state.partners.filter(p => p.category !== slug);
+    savePartners();
+    renderCardsList();
+  } else {
+    if (!confirm(`"${cat.label}" 카테고리를 삭제하시겠습니까?`)) return;
+  }
+  delete state.categories[slug];
+  saveCategories();
+  renderCatList();
+  showToast('카테고리가 삭제되었습니다', 'success');
+}
+
+function openCatEdit(slug) {
+  state.editingCatSlug = slug;  // null이면 신규
+  const cat = slug ? getCat(slug) : { label:'', bg:'#dde0e8', fg:'#3a3a5e', icon:ICON_PRESETS[0].svg };
+  document.getElementById('catEditTitle').textContent = slug ? `카테고리 편집: ${cat.label}` : '새 카테고리 추가';
+  document.getElementById('catEditBody').innerHTML = buildCatEditForm(slug, cat);
+  document.getElementById('catEditModal').hidden = false;
+  wireCatEditEvents(cat);
+}
+
+function buildCatEditForm(slug, cat) {
+  const iconGrid = ICON_PRESETS.map((p, i) => `
+    <button type="button" class="icon-tile${p.svg===cat.icon?' selected':''}" data-icon='${escapeHtml(p.svg)}' title="${escapeHtml(p.name)}">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">${p.svg}</svg>
+    </button>
+  `).join('');
+
+  return `
+    <div class="form-group">
+      <label>카테고리 이름 *</label>
+      <input type="text" id="catLabelInput" value="${escapeHtml(cat.label)}" placeholder="예: 결제">
+    </div>
+    <div class="form-group">
+      <label>Slug (영문, 중복 불가) *</label>
+      <input type="text" id="catSlugInput" value="${escapeHtml(slug||'')}" placeholder="예: payment" ${slug?'readonly':''}>
+      <div class="form-help">${slug?'기존 카테고리의 slug는 변경할 수 없습니다.':'알파벳, 숫자, 하이픈만 가능. 이름 입력 시 자동 생성됩니다.'}</div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>배경색 (연한색)</label>
+        <div class="color-input">
+          <input type="color" id="catBgPicker" value="${cat.bg}">
+          <input type="text" id="catBgInput" value="${escapeHtml(cat.bg)}">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>텍스트 색상 (진한색)</label>
+        <div class="color-input">
+          <input type="color" id="catFgPicker" value="${cat.fg}">
+          <input type="text" id="catFgInput" value="${escapeHtml(cat.fg)}">
+        </div>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>미리보기</label>
+      <div style="display:flex;gap:10px;align-items:center">
+        <span id="catPreviewTag" style="font-size:12px;font-weight:600;padding:4px 12px;border-radius:20px;background:${cat.bg};color:${cat.fg}">${escapeHtml(cat.label||'카테고리')}</span>
+        <span id="catPreviewFilter" style="font-size:12px;font-weight:600;padding:6px 14px;border-radius:20px;background:${cat.fg};color:#fff">${escapeHtml(cat.label||'카테고리')} (활성)</span>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>아이콘 (Placeholder 카드용)</label>
+      <div class="icon-grid">${iconGrid}</div>
+      <input type="hidden" id="catIconInput" value="${escapeHtml(cat.icon)}">
+    </div>
+  `;
+}
+
+function wireCatEditEvents(cat) {
+  // Auto-slug from label (only for new)
+  const slugInput = document.getElementById('catSlugInput');
+  const labelInput = document.getElementById('catLabelInput');
+  const preview = document.getElementById('catPreviewTag');
+  const previewFilter = document.getElementById('catPreviewFilter');
+  if (!slugInput.readOnly) {
+    labelInput.addEventListener('input', () => {
+      slugInput.value = slugify(labelInput.value);
+      preview.textContent = labelInput.value || '카테고리';
+      previewFilter.textContent = (labelInput.value || '카테고리') + ' (활성)';
+    });
+  } else {
+    labelInput.addEventListener('input', () => {
+      preview.textContent = labelInput.value || '카테고리';
+      previewFilter.textContent = (labelInput.value || '카테고리') + ' (활성)';
+    });
+  }
+
+  // Color sync + preview
+  function syncCatColor(pickerId, inputId, role) {
+    // role: 'bg' (light background) or 'fg' (dark text / filter active bg)
+    const picker = document.getElementById(pickerId);
+    const input = document.getElementById(inputId);
+    const update = () => {
+      if (role === 'bg') {
+        preview.style.background = input.value;
+      } else {
+        preview.style.color = input.value;
+        previewFilter.style.background = input.value;
+      }
+    };
+    picker.addEventListener('input', () => { input.value = picker.value; update(); });
+    input.addEventListener('input', () => {
+      if (/^#[0-9a-fA-F]{6}$/.test(input.value)) picker.value = input.value;
+      update();
+    });
+  }
+  syncCatColor('catBgPicker', 'catBgInput', 'bg');
+  syncCatColor('catFgPicker', 'catFgInput', 'fg');
+
+  // Icon selection
+  document.querySelectorAll('.icon-tile').forEach(tile => {
+    tile.addEventListener('click', () => {
+      document.querySelectorAll('.icon-tile').forEach(t => t.classList.remove('selected'));
+      tile.classList.add('selected');
+      document.getElementById('catIconInput').value = tile.dataset.icon;
+    });
+  });
+}
+
+function saveCatEdit() {
+  const label = document.getElementById('catLabelInput').value.trim();
+  const slug = slugify(document.getElementById('catSlugInput').value || '');
+  const bg = document.getElementById('catBgInput').value.trim() || '#dde0e8';
+  const fg = document.getElementById('catFgInput').value.trim() || '#3a3a5e';
+  const icon = document.getElementById('catIconInput').value || ICON_PRESETS[0].svg;
+
+  if (!label) { showToast('카테고리 이름은 필수입니다', 'error'); return; }
+  if (!slug) { showToast('Slug는 필수입니다', 'error'); return; }
+  if (!/^[a-z0-9][a-z0-9-]*$/.test(slug)) {
+    showToast('Slug는 영문 소문자/숫자/하이픈만 가능합니다', 'error');
+    return;
+  }
+
+  const isNew = !state.editingCatSlug;
+  if (isNew && state.categories[slug]) {
+    showToast(`"${slug}"은(는) 이미 존재하는 slug입니다`, 'error');
+    return;
+  }
+
+  state.categories[slug] = { label, bg, fg, icon };
+  saveCategories();
+  renderCatList();
+  renderCardsList();  // tag 색상이 바뀔 수 있으므로
+  document.getElementById('catEditModal').hidden = true;
+  state.editingCatSlug = null;
+  showToast(isNew ? '카테고리가 추가되었습니다' : '카테고리가 수정되었습니다', 'success');
+}
+
+/* ════════════════════════════════════════════════════════════════
+   EXPORT — partners.html 생성
+══════════════════════════════════════════════════════════════════ */
+function buildCardHtml(p) {
+  const cat = state.categories[p.category];
+  if (!cat) return '';
+
+  const tagSpan = `<span class="tag tag-${p.category}">${escapeHtml(cat.label)}</span>`;
+  const btnSvg = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>`;
+  const ctaBtn = `      <a class="card-btn" href="${escapeHtml(p.linkUrl||'#')}" target="_blank">
+        ${btnSvg}
+        문의하기
+      </a>`;
+
+  if (p.type === 'placeholder') {
+    return `    <div class="card placeholder" data-category="${p.category}">
+      <div class="card-head">
+        <div class="card-head-left">
+          <div class="logo placeholder-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">${cat.icon}</svg>
+          </div>
+          <div class="card-name">파트너사 준비 중</div>
+        </div>
+        ${tagSpan}
+      </div>
+      <div class="card-divider"></div>
+      <div class="placeholder-body">
+        <div class="placeholder-icon-lg">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        </div>
+        <div class="placeholder-coming">곧 찾아옵니다!</div>
+        <div class="placeholder-sub">파트너사 정보가 업데이트될 예정입니다</div>
+      </div>
+${ctaBtn}
+    </div>`;
+  }
+
+  let logoInner;
+  if (p.logoType === 'image' && p.logoUrl) {
+    logoInner = `<img src="${escapeHtml(p.logoUrl)}" alt="${escapeHtml(p.name)} 로고" />`;
+  } else if (p.logoType === 'text' && p.logoText) {
+    const safeText = escapeHtml(p.logoText).replace(/\n/g, '<br>');
+    logoInner = `<span style="color:${escapeHtml(p.logoTextColor||'#fff')};font-size:9.5px;font-weight:700;line-height:1.3;text-align:center;">${safeText}</span>`;
+  } else {
+    logoInner = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="width:60%;height:60%;opacity:0.4">${cat.icon}</svg>`;
+  }
+
+  const descListHtml = (p.description||[]).map(d => `          <li>${escapeHtml(d)}</li>`).join('\n');
+
+  return `    <div class="card" data-category="${p.category}">
+      <div class="card-head">
+        <div class="card-head-left">
+          <div class="logo" style="background:${escapeHtml(p.logoBg||'#ffffff')};">
+            ${logoInner}
+          </div>
+          <div class="card-name">${escapeHtml(p.name)}</div>
+        </div>
+        ${tagSpan}
+      </div>
+      <div class="card-divider"></div>
+      <div class="card-body">
+        <p class="card-summary">${escapeHtml(p.summary)}</p>
+        <ul class="card-desc">
+${descListHtml}
+        </ul>
+      </div>
+${ctaBtn}
+    </div>`;
+}
+
+function buildTagCss() {
+  return getCatList().map(([slug, c]) =>
+    `  .tag-${slug} { background:${c.bg}; color:${c.fg}; }`
+  ).join('\n');
+}
+
+function buildFilterCss() {
+  return getCatList().map(([slug, c]) =>
+    `  .filter-btn[data-filter="${slug}"] { background:${c.bg}; color:${c.fg}; }\n` +
+    `  .filter-btn[data-filter="${slug}"].active { background:${c.fg}; color:#fff; }`
+  ).join('\n');
+}
+
+function buildFiltersHtml() {
+  return getCatList().map(([slug, c]) =>
+    `    <button class="filter-btn" data-filter="${slug}">${escapeHtml(c.label)}</button>`
+  ).join('\n');
+}
+
+async function exportHtml() {
+  let template;
+  try {
+    const res = await fetch(PARTNERS_HTML_PATH, { cache: 'no-store' });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    template = await res.text();
+  } catch(e) {
+    showToast(`partners.html을 못 불러왔습니다 (${e.message}). 같은 폴더에 있는지 확인해주세요.`, 'error');
+    return;
+  }
+
+  const required = [
+    ['<!-- ADMIN_CARDS_START -->', '<!-- ADMIN_CARDS_END -->'],
+    ['/* ADMIN_TAG_CSS_START */', '/* ADMIN_TAG_CSS_END */'],
+    ['/* ADMIN_FILTER_CSS_START */', '/* ADMIN_FILTER_CSS_END */'],
+    ['<!-- ADMIN_FILTERS_START -->', '<!-- ADMIN_FILTERS_END -->']
+  ];
+  for (const [s, e] of required) {
+    if (!template.includes(s) || !template.includes(e)) {
+      showToast(`partners.html에 마커가 부족합니다 (${s}). 최신 partners.html을 다시 받아주세요.`, 'error');
+      return;
+    }
+  }
+
+  const total = state.partners.length;
+  const newCards = state.partners.map(buildCardHtml).join('\n\n');
+  const newTagCss = buildTagCss();
+  const newFilterCss = buildFilterCss();
+  const newFiltersHtml = buildFiltersHtml();
+
+  let newHtml = template
+    .replace(
+      /<!-- ADMIN_CARDS_START -->[\s\S]*?<!-- ADMIN_CARDS_END -->/,
+      `<!-- ADMIN_CARDS_START -->\n${newCards}\n    <!-- ADMIN_CARDS_END -->`
+    )
+    .replace(
+      /\/\* ADMIN_TAG_CSS_START \*\/[\s\S]*?\/\* ADMIN_TAG_CSS_END \*\//,
+      `/* ADMIN_TAG_CSS_START */\n${newTagCss}\n  /* ADMIN_TAG_CSS_END */`
+    )
+    .replace(
+      /\/\* ADMIN_FILTER_CSS_START \*\/[\s\S]*?\/\* ADMIN_FILTER_CSS_END \*\//,
+      `/* ADMIN_FILTER_CSS_START */\n${newFilterCss}\n  /* ADMIN_FILTER_CSS_END */`
+    )
+    .replace(
+      /<!-- ADMIN_FILTERS_START -->[\s\S]*?<!-- ADMIN_FILTERS_END -->/,
+      `<!-- ADMIN_FILTERS_START -->\n${newFiltersHtml}\n    <!-- ADMIN_FILTERS_END -->`
+    )
+    .replace(
+      /<div class="section-label">전체 파트너 카테고리 \d+<\/div>/,
+      `<div class="section-label">전체 파트너 카테고리 ${getCatList().length}</div>`
+    );
+
+  const blob = new Blob([newHtml], { type: 'text/html;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'partners.html';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  showToast(`partners.html 다운로드 완료 (${total}개 카드, ${getCatList().length}개 카테고리)`, 'success');
+}
+
+/* ════════════════════════════════════════════════════════════════
+   JSON BACKUP / RESTORE (categories 포함)
+══════════════════════════════════════════════════════════════════ */
+function exportJson() {
+  const data = {
+    version: 2,
+    partners: state.partners,
+    categories: state.categories
+  };
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  const ts = new Date().toISOString().slice(0,19).replace(/[:T]/g,'-');
+  a.download = `partners-backup-${ts}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  showToast('JSON 백업 다운로드 완료', 'success');
+}
+
+function importJson() {
+  document.getElementById('jsonFileInput').click();
+}
+
+function handleJsonFile(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const data = JSON.parse(reader.result);
+      let partners, categories;
+      if (Array.isArray(data)) {
+        // v1 format: just an array of partners
+        partners = data;
+      } else if (data.partners && Array.isArray(data.partners)) {
+        partners = data.partners;
+        categories = data.categories;
+      } else {
+        throw new Error('형식이 올바르지 않습니다');
+      }
+      const msg = `파트너 ${partners.length}개${categories ? `, 카테고리 ${Object.keys(categories).length}개` : ''}로 교체합니다. 현재 데이터는 사라집니다. 계속하시겠습니까?`;
+      if (!confirm(msg)) return;
+      state.partners = partners;
+      savePartners();
+      if (categories) {
+        state.categories = categories;
+        saveCategories();
+      }
+      renderCardsList();
+      showToast('JSON 가져오기 완료', 'success');
+    } catch(err) {
+      showToast(`가져오기 실패: ${err.message}`, 'error');
+    }
+  };
+  reader.readAsText(file);
+  e.target.value = '';
+}
+
+/* ════════════════════════════════════════════════════════════════
+   PASSWORD CHANGE
+══════════════════════════════════════════════════════════════════ */
+function openPasswordModal() {
+  document.getElementById('newPwInput').value = '';
+  document.getElementById('newPwConfirmInput').value = '';
+  document.getElementById('newPwHashOutput').value = '';
+  document.getElementById('pwModal').hidden = false;
+}
+
+async function generateNewHash() {
+  const pw = document.getElementById('newPwInput').value;
+  const pwc = document.getElementById('newPwConfirmInput').value;
+  if (pw.length < 4) { showToast('비밀번호가 너무 짧습니다', 'error'); return; }
+  if (pw !== pwc) { showToast('비밀번호가 일치하지 않습니다', 'error'); return; }
+  const hash = await hashPassword(pw);
+  document.getElementById('newPwHashOutput').value = hash;
+  showToast('해시 생성 완료. admin.html의 passwordHash에 붙여넣으세요.', 'success');
+}
+
+/* ════════════════════════════════════════════════════════════════
+   TOAST
+══════════════════════════════════════════════════════════════════ */
+let toastTimer;
+function showToast(msg, kind='') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = `toast show ${kind}`;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 3500);
+}
+
+/* ════════════════════════════════════════════════════════════════
+   INIT
+══════════════════════════════════════════════════════════════════ */
+function showAdmin() {
+  document.getElementById('loginScreen').hidden = true;
+  document.getElementById('adminUI').hidden = false;
+  loadAll();
+  renderCardsList();
+}
+
+document.getElementById('loginForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const u = document.getElementById('usernameInput').value;
+  const p = document.getElementById('passwordInput').value;
+  const errEl = document.getElementById('loginError');
+  errEl.textContent = '';
+  const ok = await attemptLogin(u, p);
+  if (ok) {
+    setLoggedIn();
+    showAdmin();
+  } else {
+    errEl.textContent = '아이디 또는 비밀번호가 올바르지 않습니다';
+    document.getElementById('passwordInput').value = '';
+  }
+});
+
+document.getElementById('addBtn').addEventListener('click', openAddModal);
+document.getElementById('exportHtmlBtn').addEventListener('click', exportHtml);
+document.getElementById('exportJsonBtn').addEventListener('click', exportJson);
+document.getElementById('importJsonBtn').addEventListener('click', importJson);
+document.getElementById('jsonFileInput').addEventListener('change', handleJsonFile);
+document.getElementById('imageFileInput').addEventListener('change', handleImageFile);
+document.getElementById('logoutBtn').addEventListener('click', logout);
+document.getElementById('passwordBtn').addEventListener('click', openPasswordModal);
+document.getElementById('generateHashBtn').addEventListener('click', generateNewHash);
+document.getElementById('modalSaveBtn').addEventListener('click', saveModal);
+
+document.getElementById('catMgrBtn').addEventListener('click', openCategoryManager);
+document.getElementById('addCatBtn').addEventListener('click', () => openCatEdit(null));
+document.getElementById('catEditSaveBtn').addEventListener('click', saveCatEdit);
+
+document.getElementById('githubBtn').addEventListener('click', openGithubSettings);
+document.getElementById('saveGhBtn').addEventListener('click', saveGhFromForm);
+document.getElementById('testGhBtn').addEventListener('click', testGithubConnection);
+
+// Modal close handlers
+document.querySelectorAll('[data-close]').forEach(el => el.addEventListener('click', closeModal));
+document.querySelectorAll('[data-pw-close]').forEach(el => el.addEventListener('click', () => {
+  document.getElementById('pwModal').hidden = true;
+}));
+document.querySelectorAll('[data-cm-close]').forEach(el => el.addEventListener('click', () => {
+  document.getElementById('catMgrModal').hidden = true;
+}));
+document.querySelectorAll('[data-ce-close]').forEach(el => el.addEventListener('click', () => {
+  document.getElementById('catEditModal').hidden = true;
+  state.editingCatSlug = null;
+}));
+document.querySelectorAll('[data-gh-close]').forEach(el => el.addEventListener('click', () => {
+  document.getElementById('githubModal').hidden = true;
+}));
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    closeModal();
+    document.getElementById('pwModal').hidden = true;
+    document.getElementById('catEditModal').hidden = true;
+    document.getElementById('catMgrModal').hidden = true;
+    document.getElementById('githubModal').hidden = true;
+  }
+});
+
+if (isLoggedIn()) showAdmin();
+</script>
+</body>
+</html>

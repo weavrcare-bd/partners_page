@@ -1,0 +1,972 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>파트너사 소개 — 닥터팔레트</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --brand:       #c5d9ff;
+    --brand-dark:  #1a4a99;
+    --brand-mid:   #4a7ad4;
+    --bg:          #f4f7fc;
+    --surface:     #ffffff;
+    --border:      rgba(0,0,0,0.07);
+    --text-primary:#18181b;
+    --text-sub:    #52525b;
+    --text-muted:  #a1a1aa;
+    --radius-md:   8px;
+    --radius-lg:   16px;
+    --shadow-card: 0 2px 12px rgba(74,122,212,0.08), 0 8px 32px rgba(0,0,0,0.05);
+    --shadow-hover:0 4px 20px rgba(74,122,212,0.15), 0 12px 40px rgba(0,0,0,0.08);
+  }
+
+  body {
+    font-family: 'Pretendard', 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
+    background: var(--bg);
+    color: var(--text-primary);
+    line-height: 1.6;
+    min-height: 100vh;
+  }
+
+  /* ── Nav ── */
+  .nav {
+    background: var(--surface);
+    border-bottom: 0.5px solid var(--border);
+    padding: 0 2rem;
+    height: 72px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: 0 1px 8px rgba(0,0,0,0.04);
+  }
+  .nav-logo { display:flex; align-items:center; gap:12px; text-decoration:none; }
+  .nav-logo-img { height:38px; display:block; }
+  .nav-logo-sub { font-size:19px; color:var(--text-muted); font-weight:500; letter-spacing:-0.01em; }
+  .nav-cta { font-size:13px; color:var(--brand-dark); font-weight:500; text-decoration:none; padding:6px 16px; border:1px solid var(--brand); border-radius:20px; background:#eef4ff; transition:background .15s; }
+  .nav-cta:hover { background:var(--brand); }
+
+  /* ── Banner ── */
+  .banner-section { width:100%; background:var(--bg); padding:20px 0 8px; border-bottom:0.5px solid var(--border); }
+  .banner-wrap { max-width:920px; margin:0 auto; padding:0 1.5rem; }
+  .banner-label { font-size:10px; font-weight:600; letter-spacing:0.1em; text-transform:uppercase; color:var(--text-muted); margin-bottom:12px; padding-left:2px; }
+  .banner-slider { position:relative; width:100%; border-radius:var(--radius-lg); overflow:hidden; background:transparent; aspect-ratio:4/1; min-height:80px; cursor:pointer; }
+  .banner-track { display:flex; width:100%; height:100%; transition:transform 0.55s cubic-bezier(0.4,0,0.2,1); }
+  .banner-slide { min-width:100%; height:100%; display:flex; align-items:center; justify-content:center; position:relative; overflow:hidden; border-radius:var(--radius-lg); flex-shrink:0; }
+  .banner-slide img { width:100%; height:100%; object-fit:cover; display:block; }
+  .banner-slide.empty { background:linear-gradient(135deg,#e8f0ff 0%,#dce9ff 50%,#c5d9ff 100%); flex-direction:column; gap:8px; }
+  .banner-slide.empty .slide-num { font-size:28px; font-weight:700; color:rgba(26,74,153,0.15); letter-spacing:-0.04em; }
+  .banner-slide.empty .slide-hint { font-size:12px; color:rgba(74,122,212,0.5); font-weight:500; }
+  .banner-arrow { position:absolute; top:50%; transform:translateY(-50%); width:34px; height:34px; border-radius:50%; background:rgba(255,255,255,0.8); border:0.5px solid rgba(74,122,212,0.2); color:var(--brand-dark); display:flex; align-items:center; justify-content:center; cursor:pointer; z-index:10; transition:background .15s; backdrop-filter:blur(4px); }
+  .banner-arrow:hover { background:white; }
+  .banner-arrow.prev { left:10px; }
+  .banner-arrow.next { right:10px; }
+  .banner-arrow svg { width:16px; height:16px; pointer-events:none; }
+  .banner-dots { display:flex; justify-content:center; gap:6px; margin-top:10px; }
+  .banner-dot { width:6px; height:6px; border-radius:50%; background:rgba(197,217,255,0.4); cursor:pointer; transition:background .2s, transform .2s; border:none; padding:0; }
+  .banner-dot.active { background:var(--brand-dark); transform:scale(1.3); }
+
+  /* ── Hero ── */
+  .hero { background:linear-gradient(160deg,#e8f0ff 0%,#f0f5ff 50%,var(--bg) 100%); border-bottom:0.5px solid var(--border); padding:3rem 2rem 2.5rem; text-align:center; }
+  .hero-badge { display:inline-flex; align-items:center; gap:6px; font-size:12px; font-weight:600; color:var(--brand-dark); background:var(--brand); padding:5px 14px; border-radius:20px; margin-bottom:1.25rem; letter-spacing:0.03em; }
+  .hero-badge::before { content:''; width:6px; height:6px; border-radius:50%; background:var(--brand-dark); opacity:0.5; }
+  .hero h1 { font-size:clamp(20px,4vw,28px); font-weight:700; color:var(--text-primary); letter-spacing:-0.03em; line-height:1.3; margin-bottom:0.75rem; }
+  .hero p { font-size:14px; color:var(--text-sub); line-height:1.8; }
+
+  /* ── Main ── */
+  .main { max-width:920px; margin:0 auto; padding:2.5rem 1.5rem 4rem; }
+  .section-label { display:flex; align-items:center; gap:10px; font-size:11px; font-weight:600; color:var(--text-muted); letter-spacing:0.08em; text-transform:uppercase; margin-bottom:1.5rem; }
+  .section-label::after { content:''; flex:1; height:0.5px; background:var(--border); }
+
+  /* ── Grid ── */
+  .grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(268px,1fr)); gap:20px; }
+
+  /* ── Card ── */
+  .card {
+    background:var(--surface);
+    border:1px solid transparent;
+    border-radius:var(--radius-lg);
+    padding:1.75rem;
+    display:flex;
+    flex-direction:column;
+    gap:16px;
+    box-shadow:var(--shadow-card);
+    transition:box-shadow .22s, transform .22s, border-color .22s;
+  }
+  .card:hover {
+    box-shadow:var(--shadow-hover);
+    transform:translateY(-3px);
+    border-color:rgba(197,217,255,0.6);
+  }
+  .card.placeholder {
+    background:#fafafa;
+    box-shadow:none;
+    border:1px dashed rgba(0,0,0,0.1);
+  }
+  .card.placeholder:hover { transform:none; box-shadow:none; border-color:rgba(0,0,0,0.1); }
+
+  /* Card head: 로고+이름 좌측, 태그 우측상단 */
+  .card-head {
+    display:flex;
+    align-items:flex-start;
+    justify-content:space-between;
+    gap:12px;
+  }
+  .card-head-left { display:flex; align-items:center; gap:12px; flex:1; min-width:0; }
+
+  .logo {
+    width:50px;
+    height:50px;
+    border-radius:12px;
+    flex-shrink:0;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:10px;
+    font-weight:700;
+    line-height:1.25;
+    text-align:center;
+    overflow:hidden;
+    border:0.5px solid var(--border);
+  }
+  .logo img { width:100%; height:100%; object-fit:contain; padding:6px; }
+  .logo.placeholder-icon { background:#f4f4f5; color:var(--text-muted); }
+  .logo.placeholder-icon svg { width:22px; height:22px; opacity:0.4; }
+
+  /* 회사명 — bold, 크게 */
+  .card-name {
+    font-size:16px;
+    font-weight:700;
+    color:var(--text-primary);
+    letter-spacing:-0.02em;
+    line-height:1.3;
+    word-break:keep-all;
+  }
+  .card.placeholder .card-name { color:var(--text-muted); font-weight:500; }
+
+  /* 태그 — 우측 상단 */
+  .tag {
+    display:inline-block;
+    font-size:11px;
+    font-weight:600;
+    padding:3px 10px;
+    border-radius:20px;
+    letter-spacing:0.02em;
+    flex-shrink:0;
+    white-space:nowrap;
+  }
+  /* ADMIN_TAG_CSS_START */
+  .tag-payment   { background:#dce9ff; color:#1a4a99; }
+  .tag-marketing { background:#d8f0e0; color:#145c28; }
+  .tag-loan      { background:#ffeedd; color:#7a3c00; }
+  .tag-interior  { background:#fce4ef; color:#880e47; }
+  .tag-web       { background:#ede8ff; color:#4a1a99; }
+  .tag-internet  { background:#d8f4f4; color:#005f5f; }
+  .tag-ai        { background:#f0e8ff; color:#5a1a99; }
+  .tag-law       { background:#dde0ed; color:#252e6b; }
+  .tag-labor     { background:#ead7e8; color:#5c2c5c; }
+  .tag-tax       { background:#fff0ce; color:#7d5b00; }
+  .tag-location  { background:#e6edcd; color:#4d5810; }
+  .tag-medicine  { background:#fdd0d8; color:#8b1e3a; }
+  .tag-equipment { background:#dde6ed; color:#1a3a5c; }
+  .tag-used      { background:#e8e0d4; color:#5c4818; }
+  .tag-cleaning  { background:#d8e8f5; color:#1a4d70; }
+  .tag-water     { background:#d4eef0; color:#0d4a5b; }
+  .tag-coffee    { background:#e8d8c8; color:#5e3614; }
+  .tag-phone     { background:#dde0e8; color:#3a3a5e; }
+  /* ADMIN_TAG_CSS_END */
+
+  /* Divider */
+  .card-divider { height:0.5px; background:var(--border); }
+
+  /* Description area */
+  .card-body { display:flex; flex-direction:column; gap:10px; flex:1; }
+
+  /* 핵심 한 줄 요약 */
+  .card-summary {
+    font-size:13px;
+    font-weight:600;
+    color:var(--brand-dark);
+    line-height:1.5;
+    word-break:keep-all;
+  }
+  .card.placeholder .card-summary { color:var(--text-muted); }
+
+  /* 설명 리스트 */
+  .card-desc {
+    font-size:13px;
+    color:var(--text-sub);
+    line-height:1.65;
+    flex:1;
+    word-break:keep-all;
+    list-style:none;
+    padding:0;
+    margin:0;
+    display:flex;
+    flex-direction:column;
+    gap:6px;
+  }
+  .card-desc li { display:flex; align-items:flex-start; gap:8px; }
+  .card-desc li::before {
+    content:'';
+    display:block;
+    width:3px;
+    height:3px;
+    border-radius:50%;
+    background:var(--brand-mid);
+    margin-top:7px;
+    flex-shrink:0;
+    opacity:0.6;
+  }
+  .card.placeholder .card-desc { color:var(--text-muted); }
+  .card.placeholder .card-desc li::before { background:var(--text-muted); }
+
+  /* Placeholder 전용 안내 영역 */
+  .placeholder-body {
+    flex:1;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    gap:8px;
+    padding:16px 0;
+  }
+  .placeholder-icon-lg {
+    width:44px;
+    height:44px;
+    border-radius:50%;
+    background:#f0f0f0;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+  }
+  .placeholder-icon-lg svg { width:22px; height:22px; color:#c0c0c0; }
+  .placeholder-coming { font-size:13px; font-weight:600; color:var(--text-muted); }
+  .placeholder-sub { font-size:12px; color:#c0c0c0; }
+
+  /* CTA Button — Solid */
+  .card-btn {
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:7px;
+    width:100%;
+    padding:11px 0;
+    border-radius:var(--radius-md);
+    border:none;
+    background:var(--brand-dark);
+    color:#fff;
+    font-size:13px;
+    font-weight:600;
+    text-decoration:none;
+    cursor:pointer;
+    transition:background .15s, transform .15s, box-shadow .15s;
+    margin-top:auto;
+    box-shadow:0 2px 8px rgba(26,74,153,0.2);
+  }
+  .card-btn:hover {
+    background:#153d80;
+    transform:translateY(-1px);
+    box-shadow:0 4px 14px rgba(26,74,153,0.3);
+  }
+  .card-btn svg { width:14px; height:14px; flex-shrink:0; }
+  .card.placeholder .card-btn {
+    background:#e5e5e5;
+    color:#aaa;
+    box-shadow:none;
+    pointer-events:none;
+  }
+
+  /* ── Footer ── */
+  footer { border-top:0.5px solid var(--border); padding:2rem; text-align:center; }
+  .footer-inner { max-width:920px; margin:0 auto; display:flex; flex-direction:column; align-items:center; gap:6px; }
+  .footer-brand { font-size:13px; font-weight:600; color:var(--text-sub); }
+  .footer-sub { font-size:12px; color:var(--text-muted); }
+
+
+  /* ── Filter Bar ── */
+  .filter-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 7px 8px;
+    margin-bottom: 2rem;
+  }
+  .filter-btn {
+    font-size: 12px;
+    font-weight: 600;
+    padding: 6px 14px;
+    border-radius: 20px;
+    border: none;
+    cursor: pointer;
+    transition: opacity 0.15s, transform 0.15s, box-shadow 0.15s;
+    letter-spacing: -0.01em;
+    font-family: inherit;
+    line-height: 1.4;
+    white-space: nowrap;
+  }
+  .filter-btn:hover { opacity: 0.78; }
+  .filter-btn.active {
+    transform: translateY(-1px);
+    box-shadow: 0 3px 10px rgba(0,0,0,0.12);
+  }
+  .filter-btn[data-filter="all"] { background: #e8e8e8; color: #2c2c2c; }
+  .filter-btn[data-filter="all"].active { background: #18181b; color: #fff; }
+  /* ADMIN_FILTER_CSS_START */
+  .filter-btn[data-filter="payment"] { background:#dce9ff; color:#1a4a99; }
+  .filter-btn[data-filter="payment"].active { background:#1a4a99; color:#fff; }
+  .filter-btn[data-filter="marketing"] { background:#d8f0e0; color:#145c28; }
+  .filter-btn[data-filter="marketing"].active { background:#145c28; color:#fff; }
+  .filter-btn[data-filter="loan"] { background:#ffeedd; color:#7a3c00; }
+  .filter-btn[data-filter="loan"].active { background:#7a3c00; color:#fff; }
+  .filter-btn[data-filter="interior"] { background:#fce4ef; color:#880e47; }
+  .filter-btn[data-filter="interior"].active { background:#880e47; color:#fff; }
+  .filter-btn[data-filter="web"] { background:#ede8ff; color:#4a1a99; }
+  .filter-btn[data-filter="web"].active { background:#4a1a99; color:#fff; }
+  .filter-btn[data-filter="ai"] { background:#f0e8ff; color:#5a1a99; }
+  .filter-btn[data-filter="ai"].active { background:#5a1a99; color:#fff; }
+  .filter-btn[data-filter="internet"] { background:#d8f4f4; color:#005f5f; }
+  .filter-btn[data-filter="internet"].active { background:#005f5f; color:#fff; }
+  .filter-btn[data-filter="law"] { background:#dde0ed; color:#252e6b; }
+  .filter-btn[data-filter="law"].active { background:#252e6b; color:#fff; }
+  .filter-btn[data-filter="labor"] { background:#ead7e8; color:#5c2c5c; }
+  .filter-btn[data-filter="labor"].active { background:#5c2c5c; color:#fff; }
+  .filter-btn[data-filter="tax"] { background:#fff0ce; color:#7d5b00; }
+  .filter-btn[data-filter="tax"].active { background:#7d5b00; color:#fff; }
+  .filter-btn[data-filter="location"] { background:#e6edcd; color:#4d5810; }
+  .filter-btn[data-filter="location"].active { background:#4d5810; color:#fff; }
+  .filter-btn[data-filter="medicine"] { background:#fdd0d8; color:#8b1e3a; }
+  .filter-btn[data-filter="medicine"].active { background:#8b1e3a; color:#fff; }
+  .filter-btn[data-filter="equipment"] { background:#dde6ed; color:#1a3a5c; }
+  .filter-btn[data-filter="equipment"].active { background:#1a3a5c; color:#fff; }
+  .filter-btn[data-filter="used"] { background:#e8e0d4; color:#5c4818; }
+  .filter-btn[data-filter="used"].active { background:#5c4818; color:#fff; }
+  .filter-btn[data-filter="cleaning"] { background:#d8e8f5; color:#1a4d70; }
+  .filter-btn[data-filter="cleaning"].active { background:#1a4d70; color:#fff; }
+  .filter-btn[data-filter="water"] { background:#d4eef0; color:#0d4a5b; }
+  .filter-btn[data-filter="water"].active { background:#0d4a5b; color:#fff; }
+  .filter-btn[data-filter="coffee"] { background:#e8d8c8; color:#5e3614; }
+  .filter-btn[data-filter="coffee"].active { background:#5e3614; color:#fff; }
+  .filter-btn[data-filter="phone"] { background:#dde0e8; color:#3a3a5e; }
+  .filter-btn[data-filter="phone"].active { background:#3a3a5e; color:#fff; }
+  /* ADMIN_FILTER_CSS_END */
+
+  /* ── Responsive ── */
+  @media (max-width:540px) {
+    .nav { padding:0 1rem; height:62px; }
+    .nav-logo-img { height:32px; }
+    .nav-logo-sub { font-size:16px; }
+    .hero { padding:2rem 1.25rem 1.75rem; }
+    .main { padding:2rem 1rem 3rem; }
+    .grid { grid-template-columns:1fr; }
+    .filter-bar { gap: 5px 6px; margin-bottom: 1.5rem; }
+    .filter-btn { font-size: 11.5px; padding: 5px 11px; }
+
+    .banner-wrap { padding:0 1rem; }
+    .banner-slider { aspect-ratio:3/1; min-height:70px; }
+    .banner-arrow { width:28px; height:28px; }
+    .banner-arrow svg { width:13px; height:13px; }
+  }
+  @media (max-width:380px) {
+    .banner-slider { aspect-ratio:2.5/1; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Nav -->
+<nav class="nav">
+  <a class="nav-logo" href="https://dr.pltt.cloud/" target="_blank">
+    <img class="nav-logo-img" src="https://raw.githubusercontent.com/weavrcare-bd/partners_page/main/logo/drp.png" alt="Dr.palette 닥터팔레트" />
+    <span class="nav-logo-sub">파트너사</span>
+  </a>
+</nav>
+
+<!-- Banner -->
+<section class="banner-section">
+  <div class="banner-wrap">
+    <div class="banner-label">FEATURED PARTNERS</div>
+    <div class="banner-slider" id="bannerSlider">
+      <div class="banner-track" id="bannerTrack">
+        <div class="banner-slide empty"><div class="slide-num">01</div><div class="slide-hint">배너 이미지를 등록하세요 (권장: 1200×300px)</div></div>
+        <div class="banner-slide empty"><div class="slide-num">02</div><div class="slide-hint">배너 이미지를 등록하세요 (권장: 1200×300px)</div></div>
+        <div class="banner-slide empty"><div class="slide-num">03</div><div class="slide-hint">배너 이미지를 등록하세요 (권장: 1200×300px)</div></div>
+        <div class="banner-slide empty"><div class="slide-num">04</div><div class="slide-hint">배너 이미지를 등록하세요 (권장: 1200×300px)</div></div>
+        <div class="banner-slide empty"><div class="slide-num">05</div><div class="slide-hint">배너 이미지를 등록하세요 (권장: 1200×300px)</div></div>
+      </div>
+      <button class="banner-arrow prev" id="bannerPrev" aria-label="이전"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></button>
+      <button class="banner-arrow next" id="bannerNext" aria-label="다음"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></button>
+    </div>
+    <div class="banner-dots" id="bannerDots"></div>
+  </div>
+</section>
+
+<!-- Hero -->
+<section class="hero">
+  <div class="hero-badge">닥터팔레트 공식 파트너</div>
+  <h1>믿을 수 있는 파트너사를<br>소개합니다</h1>
+  <p>닥터팔레트가 검증한 전문 파트너사와 함께<br>병원 개원부터 운영까지 원스톱으로 지원받으세요.</p>
+</section>
+
+<!-- Main -->
+<main class="main">
+  <div class="section-label">전체 파트너 카테고리 18</div>
+  <div class="filter-bar">
+    <button class="filter-btn active" data-filter="all">전체</button>
+    <!-- ADMIN_FILTERS_START -->
+    <button class="filter-btn" data-filter="payment">결제</button>
+    <button class="filter-btn" data-filter="marketing">DB마케팅</button>
+    <button class="filter-btn" data-filter="loan">대출</button>
+    <button class="filter-btn" data-filter="interior">인테리어</button>
+    <button class="filter-btn" data-filter="web">홈페이지</button>
+    <button class="filter-btn" data-filter="ai">AI 챗봇</button>
+    <button class="filter-btn" data-filter="internet">인터넷</button>
+    <button class="filter-btn" data-filter="law">법률</button>
+    <button class="filter-btn" data-filter="labor">노무</button>
+    <button class="filter-btn" data-filter="tax">세무</button>
+    <button class="filter-btn" data-filter="location">입지</button>
+    <button class="filter-btn" data-filter="medicine">약품</button>
+    <button class="filter-btn" data-filter="equipment">의료장비 및 기기</button>
+    <button class="filter-btn" data-filter="used">중고의료기기</button>
+    <button class="filter-btn" data-filter="cleaning">청소</button>
+    <button class="filter-btn" data-filter="water">정수기</button>
+    <button class="filter-btn" data-filter="coffee">커피머신</button>
+    <button class="filter-btn" data-filter="phone">전화기</button>
+    <!-- ADMIN_FILTERS_END -->
+  </div>
+
+  <div class="grid">
+    <!-- ADMIN_CARDS_START -->
+
+    <!-- 1. 결제 — 한국결제시스템 -->
+    <div class="card" data-category="payment">
+      <div class="card-head">
+        <div class="card-head-left">
+          <div class="logo" style="background:#0046b0;">
+            <span style="color:#fff;font-size:9.5px;font-weight:700;line-height:1.3;text-align:center;">한국<br>결제</span>
+          </div>
+          <div class="card-name">한국결제시스템</div>
+        </div>
+        <span class="tag tag-payment">결제</span>
+      </div>
+      <div class="card-divider"></div>
+      <div class="card-body">
+        <p class="card-summary">의료기관에 특화된 올인원 결제 솔루션</p>
+        <ul class="card-desc">
+          <li>카드·현금·간편결제를 하나로 통합해 원무 업무를 간소화합니다.</li>
+          <li>닥터팔레트와 직접 연동되어 정산 오류 없는 운영 환경을 제공합니다.</li>
+          <li>VAN·PG사 계약 대행을 통해 최적의 수수료 조건을 지원합니다.</li>
+        </ul>
+      </div>
+      <a class="card-btn" href="#" target="_blank">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        문의하기
+      </a>
+    </div>
+
+    <!-- 2. DB마케팅 — 우상향마케팅 -->
+    <div class="card" data-category="marketing">
+      <div class="card-head">
+        <div class="card-head-left">
+          <div class="logo" style="background:#1a7a3a;">
+            <img src="https://raw.githubusercontent.com/weavrcare-bd/partners_page/main/logo/woosang.png" alt="우상향마케팅 로고" />
+          </div>
+          <div class="card-name">우상향마케팅</div>
+        </div>
+        <span class="tag tag-marketing">DB마케팅</span>
+      </div>
+      <div class="card-divider"></div>
+      <div class="card-body">
+        <p class="card-summary">미용의료 전문 DB 마케팅으로 신환 유입 극대화</p>
+        <ul class="card-desc">
+          <li>피부과·성형외과에 특화된 채널별 맞춤 광고 전략을 제안합니다.</li>
+          <li>닥터팔레트 CRM과 연동해 광고 성과를 데이터 기반으로 분석합니다.</li>
+          <li>병원별 최적 마케팅 플랜으로 비용 대비 효율을 극대화합니다.</li>
+        </ul>
+      </div>
+      <a class="card-btn" href="#" target="_blank">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        문의하기
+      </a>
+    </div>
+
+    <!-- 3. 대출 — BNK 경남은행 KN파트너스 -->
+    <div class="card" data-category="loan">
+      <div class="card-head">
+        <div class="card-head-left">
+          <div class="logo" style="background:#ffffff;">
+            <img src="https://raw.githubusercontent.com/weavrcare-bd/partners_page/main/logo/knb.png" alt="BNK 경남은행 KN파트너스 로고" />
+          </div>
+          <div class="card-name">BNK 경남은행 · KN파트너스</div>
+        </div>
+        <span class="tag tag-loan">대출</span>
+      </div>
+      <div class="card-divider"></div>
+      <div class="card-body">
+        <p class="card-summary">의료기관 맞춤 금융 솔루션, BNK 공식 파트너</p>
+        <ul class="card-desc">
+          <li>개원 자금부터 시설 투자·운영 자금까지 금융 상품을 비교·안내합니다.</li>
+          <li>전담 컨설턴트가 서류 준비부터 실행까지 원스톱으로 지원합니다.</li>
+          <li>닥터팔레트 도입 고객 대상 우대 금리 상담이 가능합니다.</li>
+        </ul>
+      </div>
+      <a class="card-btn" href="#" target="_blank">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        문의하기
+      </a>
+    </div>
+
+    <!-- 4. 인테리어 — placeholder -->
+    <div class="card placeholder" data-category="interior">
+      <div class="card-head">
+        <div class="card-head-left">
+          <div class="logo placeholder-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+          </div>
+          <div class="card-name">파트너사 준비 중</div>
+        </div>
+        <span class="tag tag-interior">인테리어</span>
+      </div>
+      <div class="card-divider"></div>
+      <div class="placeholder-body">
+        <div class="placeholder-icon-lg">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        </div>
+        <div class="placeholder-coming">곧 찾아옵니다!</div>
+        <div class="placeholder-sub">파트너사 정보가 업데이트될 예정입니다</div>
+      </div>
+      <a class="card-btn" href="#" target="_blank">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        문의하기
+      </a>
+    </div>
+
+    <!-- 5. 홈페이지 — 닥터팔레트 home -->
+    <div class="card" data-category="web">
+      <div class="card-head">
+        <div class="card-head-left">
+          <div class="logo" style="background:#ffffff;">
+            <img src="https://raw.githubusercontent.com/weavrcare-bd/partners_page/main/logo/drp.png" alt="닥터팔레트 home 로고" />
+          </div>
+          <div class="card-name">닥터팔레트 home</div>
+        </div>
+        <span class="tag tag-web">홈페이지</span>
+      </div>
+      <div class="card-divider"></div>
+      <div class="card-body">
+        <p class="card-summary">EMR 연동 병원 홈페이지 제작 플랫폼</p>
+        <ul class="card-desc">
+          <li>피부과·성형외과에 특화된 병원 홈페이지 제작 서비스입니다.</li>
+          <li>닥터팔레트 EMR/CRM과 연동되어 시술·예약·이벤트가 실시간 반영됩니다.</li>
+          <li>의료광고법 준수 설계와 B&amp;A 갤러리, 다국어 지원까지 제공합니다.</li>
+        </ul>
+      </div>
+      <a class="card-btn" href="https://dr.pltt.cloud/palette_home" target="_blank">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        문의하기
+      </a>
+    </div>
+
+    <!-- 6. AI챗봇 — 서티라이프 -->
+    <div class="card" data-category="ai">
+      <div class="card-head">
+        <div class="card-head-left">
+          <div class="logo" style="background:#ffffff;">
+            <img src="https://raw.githubusercontent.com/weavrcare-bd/partners_page/main/logo/certi.png" alt="서티라이프 로고" />
+          </div>
+          <div class="card-name">서티라이프</div>
+        </div>
+        <span class="tag tag-ai">AI 챗봇</span>
+      </div>
+      <div class="card-divider"></div>
+      <div class="card-body">
+        <p class="card-summary">24시간 환자 상담을 자동화하는 의료 AI 플랫폼</p>
+        <ul class="card-desc">
+          <li>예약·상담 등 반복 업무를 AI가 24시간 자동 처리합니다.</li>
+          <li>카카오 알림톡 연동으로 환자 소통을 완전 자동화합니다.</li>
+          <li>닥터팔레트 CRM과 연계해 진료·마케팅 효율을 높입니다.</li>
+        </ul>
+      </div>
+      <a class="card-btn" href="https://certi.life/" target="_blank">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        문의하기
+      </a>
+    </div>
+
+    <!-- 7. 인터넷 — placeholder -->
+    <div class="card placeholder" data-category="internet">
+      <div class="card-head">
+        <div class="card-head-left">
+          <div class="logo placeholder-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><circle cx="12" cy="20" r="1"/></svg>
+          </div>
+          <div class="card-name">파트너사 준비 중</div>
+        </div>
+        <span class="tag tag-internet">인터넷</span>
+      </div>
+      <div class="card-divider"></div>
+      <div class="placeholder-body">
+        <div class="placeholder-icon-lg">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        </div>
+        <div class="placeholder-coming">곧 찾아옵니다!</div>
+        <div class="placeholder-sub">파트너사 정보가 업데이트될 예정입니다</div>
+      </div>
+      <a class="card-btn" href="#" target="_blank">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        문의하기
+      </a>
+    </div>
+
+    <!-- 8. 법률 — placeholder -->
+    <div class="card placeholder" data-category="law">
+      <div class="card-head">
+        <div class="card-head-left">
+          <div class="logo placeholder-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="3" x2="12" y2="21"/><path d="M5 7l-3 8h6z"/><path d="M19 7l-3 8h6z"/><path d="M5 7l7-3 7 3"/><line x1="7" y1="21" x2="17" y2="21"/></svg>
+          </div>
+          <div class="card-name">파트너사 준비 중</div>
+        </div>
+        <span class="tag tag-law">법률</span>
+      </div>
+      <div class="card-divider"></div>
+      <div class="placeholder-body">
+        <div class="placeholder-icon-lg">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        </div>
+        <div class="placeholder-coming">곧 찾아옵니다!</div>
+        <div class="placeholder-sub">파트너사 정보가 업데이트될 예정입니다</div>
+      </div>
+      <a class="card-btn" href="#" target="_blank">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        문의하기
+      </a>
+    </div>
+
+    <!-- 9. 노무 — placeholder -->
+    <div class="card placeholder" data-category="labor">
+      <div class="card-head">
+        <div class="card-head-left">
+          <div class="logo placeholder-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="7" r="4"/><path d="M3 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/><path d="M16 3.5a4 4 0 0 1 0 7"/><path d="M21 21v-2a4 4 0 0 0-3-3.87"/></svg>
+          </div>
+          <div class="card-name">파트너사 준비 중</div>
+        </div>
+        <span class="tag tag-labor">노무</span>
+      </div>
+      <div class="card-divider"></div>
+      <div class="placeholder-body">
+        <div class="placeholder-icon-lg">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        </div>
+        <div class="placeholder-coming">곧 찾아옵니다!</div>
+        <div class="placeholder-sub">파트너사 정보가 업데이트될 예정입니다</div>
+      </div>
+      <a class="card-btn" href="#" target="_blank">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        문의하기
+      </a>
+    </div>
+
+    <!-- 10. 세무 — placeholder -->
+    <div class="card placeholder" data-category="tax">
+      <div class="card-head">
+        <div class="card-head-left">
+          <div class="logo placeholder-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="12" x2="12" y2="18"/><path d="M10 14h3a1.5 1.5 0 0 1 0 3h-3"/><path d="M10 14h3a1.5 1.5 0 0 0 0-3h-3"/></svg>
+          </div>
+          <div class="card-name">파트너사 준비 중</div>
+        </div>
+        <span class="tag tag-tax">세무</span>
+      </div>
+      <div class="card-divider"></div>
+      <div class="placeholder-body">
+        <div class="placeholder-icon-lg">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        </div>
+        <div class="placeholder-coming">곧 찾아옵니다!</div>
+        <div class="placeholder-sub">파트너사 정보가 업데이트될 예정입니다</div>
+      </div>
+      <a class="card-btn" href="#" target="_blank">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        문의하기
+      </a>
+    </div>
+
+    <!-- 11. 입지 — placeholder -->
+    <div class="card placeholder" data-category="location">
+      <div class="card-head">
+        <div class="card-head-left">
+          <div class="logo placeholder-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 7-8 12-8 12s-8-5-8-12a8 8 0 0 1 16 0z"/><circle cx="12" cy="10" r="3"/></svg>
+          </div>
+          <div class="card-name">파트너사 준비 중</div>
+        </div>
+        <span class="tag tag-location">입지</span>
+      </div>
+      <div class="card-divider"></div>
+      <div class="placeholder-body">
+        <div class="placeholder-icon-lg">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        </div>
+        <div class="placeholder-coming">곧 찾아옵니다!</div>
+        <div class="placeholder-sub">파트너사 정보가 업데이트될 예정입니다</div>
+      </div>
+      <a class="card-btn" href="#" target="_blank">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        문의하기
+      </a>
+    </div>
+
+    <!-- 12. 약품 — placeholder -->
+    <div class="card placeholder" data-category="medicine">
+      <div class="card-head">
+        <div class="card-head-left">
+          <div class="logo placeholder-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.5 20.5L20.5 10.5a4.95 4.95 0 0 0-7-7L3.5 13.5a4.95 4.95 0 0 0 7 7z"/><line x1="8.5" y1="8.5" x2="15.5" y2="15.5"/></svg>
+          </div>
+          <div class="card-name">파트너사 준비 중</div>
+        </div>
+        <span class="tag tag-medicine">약품</span>
+      </div>
+      <div class="card-divider"></div>
+      <div class="placeholder-body">
+        <div class="placeholder-icon-lg">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        </div>
+        <div class="placeholder-coming">곧 찾아옵니다!</div>
+        <div class="placeholder-sub">파트너사 정보가 업데이트될 예정입니다</div>
+      </div>
+      <a class="card-btn" href="#" target="_blank">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        문의하기
+      </a>
+    </div>
+
+    <!-- 13. 의료장비 및 기기 — placeholder -->
+    <div class="card placeholder" data-category="equipment">
+      <div class="card-head">
+        <div class="card-head-left">
+          <div class="logo placeholder-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+          </div>
+          <div class="card-name">파트너사 준비 중</div>
+        </div>
+        <span class="tag tag-equipment">의료장비 및 기기</span>
+      </div>
+      <div class="card-divider"></div>
+      <div class="placeholder-body">
+        <div class="placeholder-icon-lg">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        </div>
+        <div class="placeholder-coming">곧 찾아옵니다!</div>
+        <div class="placeholder-sub">파트너사 정보가 업데이트될 예정입니다</div>
+      </div>
+      <a class="card-btn" href="#" target="_blank">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        문의하기
+      </a>
+    </div>
+
+    <!-- 14. 중고의료기기 — placeholder -->
+    <div class="card placeholder" data-category="used">
+      <div class="card-head">
+        <div class="card-head-left">
+          <div class="logo placeholder-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/><path d="M3 21v-5h5"/></svg>
+          </div>
+          <div class="card-name">파트너사 준비 중</div>
+        </div>
+        <span class="tag tag-used">중고의료기기</span>
+      </div>
+      <div class="card-divider"></div>
+      <div class="placeholder-body">
+        <div class="placeholder-icon-lg">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        </div>
+        <div class="placeholder-coming">곧 찾아옵니다!</div>
+        <div class="placeholder-sub">파트너사 정보가 업데이트될 예정입니다</div>
+      </div>
+      <a class="card-btn" href="#" target="_blank">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        문의하기
+      </a>
+    </div>
+
+    <!-- 15. 청소 — placeholder -->
+    <div class="card placeholder" data-category="cleaning">
+      <div class="card-head">
+        <div class="card-head-left">
+          <div class="logo placeholder-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/><path d="M19 4l.7 1.6L21 6.5l-1.3.9L19 9l-.7-1.6L17 6.5l1.3-.9z"/><path d="M6 16l.7 1.6L8 18.5l-1.3.9L6 21l-.7-1.6L4 18.5l1.3-.9z"/></svg>
+          </div>
+          <div class="card-name">파트너사 준비 중</div>
+        </div>
+        <span class="tag tag-cleaning">청소</span>
+      </div>
+      <div class="card-divider"></div>
+      <div class="placeholder-body">
+        <div class="placeholder-icon-lg">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        </div>
+        <div class="placeholder-coming">곧 찾아옵니다!</div>
+        <div class="placeholder-sub">파트너사 정보가 업데이트될 예정입니다</div>
+      </div>
+      <a class="card-btn" href="#" target="_blank">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        문의하기
+      </a>
+    </div>
+
+    <!-- 16. 정수기 — placeholder -->
+    <div class="card placeholder" data-category="water">
+      <div class="card-head">
+        <div class="card-head-left">
+          <div class="logo placeholder-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22c4 0 8-3 8-8 0-4-8-12-8-12S4 10 4 14c0 5 4 8 8 8z"/></svg>
+          </div>
+          <div class="card-name">파트너사 준비 중</div>
+        </div>
+        <span class="tag tag-water">정수기</span>
+      </div>
+      <div class="card-divider"></div>
+      <div class="placeholder-body">
+        <div class="placeholder-icon-lg">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        </div>
+        <div class="placeholder-coming">곧 찾아옵니다!</div>
+        <div class="placeholder-sub">파트너사 정보가 업데이트될 예정입니다</div>
+      </div>
+      <a class="card-btn" href="#" target="_blank">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        문의하기
+      </a>
+    </div>
+
+    <!-- 17. 커피머신 — placeholder -->
+    <div class="card placeholder" data-category="coffee">
+      <div class="card-head">
+        <div class="card-head-left">
+          <div class="logo placeholder-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8h1a3 3 0 0 1 0 6h-1"/><rect x="2" y="8" width="16" height="11" rx="2"/><line x1="6" y1="2" x2="6" y2="5"/><line x1="10" y1="2" x2="10" y2="5"/><line x1="14" y1="2" x2="14" y2="5"/></svg>
+          </div>
+          <div class="card-name">파트너사 준비 중</div>
+        </div>
+        <span class="tag tag-coffee">커피머신</span>
+      </div>
+      <div class="card-divider"></div>
+      <div class="placeholder-body">
+        <div class="placeholder-icon-lg">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        </div>
+        <div class="placeholder-coming">곧 찾아옵니다!</div>
+        <div class="placeholder-sub">파트너사 정보가 업데이트될 예정입니다</div>
+      </div>
+      <a class="card-btn" href="#" target="_blank">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        문의하기
+      </a>
+    </div>
+
+    <!-- 18. 전화기 — placeholder -->
+    <div class="card placeholder" data-category="phone">
+      <div class="card-head">
+        <div class="card-head-left">
+          <div class="logo placeholder-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2 2c-9 0-18-9-18-18a2 2 0 0 1 2-2h3a2 2 0 0 1 2 1.7c.2 1 .4 2 .7 3a2 2 0 0 1-.5 2L8 9.5a16 16 0 0 0 6 6l1.8-1.2a2 2 0 0 1 2-.5c1 .3 2 .5 3 .7a2 2 0 0 1 1.7 2z"/></svg>
+          </div>
+          <div class="card-name">파트너사 준비 중</div>
+        </div>
+        <span class="tag tag-phone">전화기</span>
+      </div>
+      <div class="card-divider"></div>
+      <div class="placeholder-body">
+        <div class="placeholder-icon-lg">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        </div>
+        <div class="placeholder-coming">곧 찾아옵니다!</div>
+        <div class="placeholder-sub">파트너사 정보가 업데이트될 예정입니다</div>
+      </div>
+      <a class="card-btn" href="#" target="_blank">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        문의하기
+      </a>
+    </div>
+
+    <!-- ADMIN_CARDS_END -->
+  </div>
+</main>
+
+<!-- Footer -->
+<footer>
+  <div class="footer-inner">
+    <div class="footer-brand">주식회사 위버케어</div>
+    <div class="footer-sub">파트너사 입점 및 정보 수정 문의 : <a href="mailto:partner@weavr.care" style="color:#4a7ad4;text-decoration:none;">partner@weavr.care</a></div>
+    <div class="footer-sub" style="margin-top:4px;">Copyright ⓒ 2026 Weavrcare. All rights reserved.</div>
+  </div>
+</footer>
+
+<script>
+(function(){
+  const TOTAL=5, INTERVAL=4000;
+  const track=document.getElementById('bannerTrack');
+  const dotsWrap=document.getElementById('bannerDots');
+  const prevBtn=document.getElementById('bannerPrev');
+  const nextBtn=document.getElementById('bannerNext');
+  let current=0, timer=null, paused=false;
+  for(let i=0;i<TOTAL;i++){
+    const dot=document.createElement('button');
+    dot.className='banner-dot'+(i===0?' active':'');
+    dot.setAttribute('aria-label',`슬라이드 ${i+1}`);
+    dot.addEventListener('click',()=>goTo(i));
+    dotsWrap.appendChild(dot);
+  }
+  function getDots(){return dotsWrap.querySelectorAll('.banner-dot');}
+  function goTo(index){
+    current=(index+TOTAL)%TOTAL;
+    track.style.transform=`translateX(-${current*100}%)`;
+    getDots().forEach((d,i)=>d.classList.toggle('active',i===current));
+    resetTimer();
+  }
+  function resetTimer(){
+    clearInterval(timer);
+    timer=setInterval(()=>{if(!paused)goTo(current+1);},INTERVAL);
+  }
+  prevBtn.addEventListener('click',(e)=>{e.stopPropagation();goTo(current-1);});
+  nextBtn.addEventListener('click',(e)=>{e.stopPropagation();goTo(current+1);});
+  let touchStartX=0;
+  const slider=document.getElementById('bannerSlider');
+  slider.addEventListener('touchstart',(e)=>{touchStartX=e.touches[0].clientX;paused=true;},{passive:true});
+  slider.addEventListener('touchend',(e)=>{
+    const diff=touchStartX-e.changedTouches[0].clientX;
+    paused=false;
+    if(Math.abs(diff)>40)goTo(diff>0?current+1:current-1);
+  },{passive:true});
+  slider.addEventListener('mouseenter',()=>{paused=true;});
+  slider.addEventListener('mouseleave',()=>{paused=false;});
+  goTo(0);
+})();
+
+
+(function(){
+  const buttons = document.querySelectorAll('.filter-btn');
+  const cards = document.querySelectorAll('.card');
+  if (!buttons.length || !cards.length) return;
+  buttons.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const filter = btn.dataset.filter;
+      buttons.forEach(b => b.classList.toggle('active', b === btn));
+      cards.forEach(card => {
+        const show = filter === 'all' || card.dataset.category === filter;
+        card.style.display = show ? '' : 'none';
+      });
+    });
+  });
+})();
+</script>
+</body>
+</html>

@@ -316,7 +316,8 @@
       <button class="btn btn-secondary" id="passwordBtn">비밀번호</button>
       <button class="btn btn-secondary" id="exportJsonBtn">JSON 백업</button>
       <button class="btn btn-secondary" id="importJsonBtn">JSON 가져오기</button>
-      <button class="btn btn-primary" id="exportHtmlBtn">📥 HTML 다운로드</button>
+      <button class="btn btn-secondary" id="exportHtmlBtn">📥 HTML 다운로드</button>
+      <button class="btn btn-primary" id="publishBtn">🚀 GitHub에 반영</button>
       <button class="btn btn-text" id="logoutBtn">로그아웃</button>
     </div>
   </header>
@@ -326,7 +327,7 @@
       <button class="btn btn-primary" id="addBtn">+ 새 파트너 추가</button>
       <div class="info">
         변경사항은 자동 저장됩니다 (브라우저 로컬).<br>
-        "HTML 다운로드" → GitHub에 업로드해야 실제 페이지에 반영됩니다.
+        <strong>🚀 GitHub에 반영</strong> 클릭 시 1~2분 내로 라이브 페이지에 즉시 반영됩니다.
       </div>
     </div>
     <div id="cardsList" class="cards-list"></div>
@@ -1445,7 +1446,7 @@ function buildFiltersHtml() {
   ).join('\n');
 }
 
-async function exportHtml() {
+async function generateUpdatedHtml() {
   let template;
   try {
     const res = await fetch(PARTNERS_HTML_PATH, { cache: 'no-store' });
@@ -1453,7 +1454,7 @@ async function exportHtml() {
     template = await res.text();
   } catch(e) {
     showToast(`partners.html을 못 불러왔습니다 (${e.message}). 같은 폴더에 있는지 확인해주세요.`, 'error');
-    return;
+    return null;
   }
 
   const required = [
@@ -1465,17 +1466,16 @@ async function exportHtml() {
   for (const [s, e] of required) {
     if (!template.includes(s) || !template.includes(e)) {
       showToast(`partners.html에 마커가 부족합니다 (${s}). 최신 partners.html을 다시 받아주세요.`, 'error');
-      return;
+      return null;
     }
   }
 
-  const total = state.partners.length;
   const newCards = state.partners.map(buildCardHtml).join('\n\n');
   const newTagCss = buildTagCss();
   const newFilterCss = buildFilterCss();
   const newFiltersHtml = buildFiltersHtml();
 
-  let newHtml = template
+  return template
     .replace(
       /<!-- ADMIN_CARDS_START -->[\s\S]*?<!-- ADMIN_CARDS_END -->/,
       `<!-- ADMIN_CARDS_START -->\n${newCards}\n    <!-- ADMIN_CARDS_END -->`
@@ -1496,7 +1496,12 @@ async function exportHtml() {
       /<div class="section-label">전체 파트너 카테고리 \d+<\/div>/,
       `<div class="section-label">전체 파트너 카테고리 ${getCatList().length}</div>`
     );
+}
 
+async function exportHtml() {
+  const newHtml = await generateUpdatedHtml();
+  if (!newHtml) return;
+  const total = state.partners.length;
   const blob = new Blob([newHtml], { type: 'text/html;charset=utf-8' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
@@ -1507,6 +1512,89 @@ async function exportHtml() {
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
   showToast(`partners.html 다운로드 완료 (${total}개 카드, ${getCatList().length}개 카테고리)`, 'success');
+}
+
+function utf8ToBase64(str) {
+  const bytes = new TextEncoder().encode(str);
+  let binary = '';
+  for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+  return btoa(binary);
+}
+
+async function publishToGithub() {
+  const gh = loadGh();
+  if (!gh.token) {
+    showToast('먼저 GitHub 설정에서 토큰을 등록하세요', 'error');
+    setTimeout(openGithubSettings, 800);
+    return;
+  }
+
+  const total = state.partners.length;
+  const catCount = getCatList().length;
+  if (!confirm(`partners.html을 GitHub에 즉시 반영합니다.\n\n• 파트너: ${total}개\n• 카테고리: ${catCount}개\n• 위치: ${gh.owner}/${gh.repo} (${gh.branch})\n\n1~2분 후 라이브 사이트에 반영됩니다. 계속하시겠습니까?`)) {
+    return;
+  }
+
+  const btn = document.getElementById('publishBtn');
+  const originalText = btn ? btn.textContent : '';
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = '⏳ 반영 중...';
+  }
+
+  try {
+    const newHtml = await generateUpdatedHtml();
+    if (!newHtml) throw new Error('HTML 생성 실패');
+
+    // Get current SHA of partners.html
+    let sha = null;
+    const getRes = await fetch(`https://api.github.com/repos/${gh.owner}/${gh.repo}/contents/partners.html?ref=${gh.branch}`, {
+      headers: { Authorization: `Bearer ${gh.token}`, Accept: 'application/vnd.github+json' }
+    });
+    if (getRes.ok) {
+      const info = await getRes.json();
+      sha = info.sha;
+    } else if (getRes.status === 401) {
+      throw new Error('토큰이 유효하지 않습니다');
+    } else if (getRes.status === 403) {
+      throw new Error('권한 부족 (Contents: Read & write 필요)');
+    } else if (getRes.status !== 404) {
+      throw new Error(`기존 파일 조회 실패: ${getRes.status}`);
+    }
+
+    // PUT new content
+    const body = {
+      message: `Update partners.html (${total} cards, ${catCount} categories) via admin`,
+      content: utf8ToBase64(newHtml),
+      branch: gh.branch
+    };
+    if (sha) body.sha = sha;
+
+    const putRes = await fetch(`https://api.github.com/repos/${gh.owner}/${gh.repo}/contents/partners.html`, {
+      method: 'PUT',
+      headers: {
+        Authorization: `Bearer ${gh.token}`,
+        Accept: 'application/vnd.github+json',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(body)
+    });
+
+    if (!putRes.ok) {
+      const errText = await putRes.text();
+      throw new Error(`${putRes.status}: ${errText.slice(0,200)}`);
+    }
+
+    showToast(`✓ GitHub에 반영 완료! 1~2분 후 라이브에 적용됩니다.`, 'success');
+  } catch(err) {
+    showToast(`반영 실패: ${err.message}`, 'error');
+    console.error(err);
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = originalText;
+    }
+  }
 }
 
 /* ════════════════════════════════════════════════════════════════
@@ -1630,6 +1718,7 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
 
 document.getElementById('addBtn').addEventListener('click', openAddModal);
 document.getElementById('exportHtmlBtn').addEventListener('click', exportHtml);
+document.getElementById('publishBtn').addEventListener('click', publishToGithub);
 document.getElementById('exportJsonBtn').addEventListener('click', exportJson);
 document.getElementById('importJsonBtn').addEventListener('click', importJson);
 document.getElementById('jsonFileInput').addEventListener('change', handleJsonFile);

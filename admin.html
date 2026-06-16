@@ -214,6 +214,41 @@
   .home-btn:hover { background: var(--brand-light); color: var(--brand); }
   .home-btn[hidden] { display: none !important; }
 
+  /* Banner manager */
+  .banner-row {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px;
+    margin-bottom: 8px;
+    display: grid;
+    grid-template-columns: 110px 1fr auto;
+    gap: 12px;
+    align-items: center;
+  }
+  .banner-preview {
+    width: 110px; height: 44px;
+    border-radius: 6px;
+    background: linear-gradient(135deg,#e8f0ff 0%,#dce9ff 50%,#c5d9ff 100%);
+    background-size: cover;
+    background-position: center;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 700; color: rgba(26,74,153,0.3);
+    overflow: hidden;
+  }
+  .banner-preview img { width: 100%; height: 100%; object-fit: cover; }
+  .banner-fields { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+  .banner-field-row { display: flex; gap: 6px; align-items: center; }
+  .banner-field-row input { font-size: 12px; padding: 7px 10px; }
+  .banner-field-label { font-size: 10px; color: var(--text-muted); white-space: nowrap; min-width: 64px; font-weight: 600; }
+  .banner-remove {
+    color: var(--danger);
+    font-size: 16px;
+    padding: 8px 10px;
+    align-self: stretch;
+  }
+  .banner-remove:hover { background: #fdf2f2; border-radius: 6px; }
+
   /* ───── MODAL ───── */
   .modal {
     position: fixed; inset: 0;
@@ -382,6 +417,7 @@
     </div>
     <div class="header-right">
       <button class="btn btn-secondary" id="catMgrBtn">🏷 카테고리 관리</button>
+      <button class="btn btn-secondary" id="bannerMgrBtn">🖼 배너 관리</button>
       <button class="btn btn-secondary" id="githubBtn">⚙️ GitHub 설정</button>
       <button class="btn btn-secondary" id="passwordBtn">비밀번호</button>
       <button class="btn btn-secondary" id="exportJsonBtn">JSON 백업</button>
@@ -422,10 +458,20 @@
   <!-- Edit view / 카드 리스트 -->
   <div id="editView" class="admin-body" hidden>
     <div class="toolbar">
-      <button class="btn btn-primary" id="addBtn">+ 새 파트너 추가</button>
+      <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+        <button class="btn btn-primary" id="addBtn">+ 새 파트너 추가</button>
+        <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text-sub)">
+          <span>🔀 카드 정렬:</span>
+          <select id="randomModeSelect" style="width:auto;min-width:140px;padding:6px 10px;font-size:12px">
+            <option value="manual">수동 (지정 순서)</option>
+            <option value="daily">매일 랜덤 (자정 기준)</option>
+            <option value="visit">매 방문 랜덤</option>
+          </select>
+        </div>
+      </div>
       <div class="info">
         편집 모달의 <strong>"저장"</strong> 클릭 시 GitHub에 자동 반영됩니다.<br>
-        순서 변경·삭제 후에는 우상단 <strong>"🚀 GitHub에 반영"</strong> 클릭 필요.
+        순서 변경·삭제·정렬 모드 변경은 우상단 <strong>"🚀 GitHub에 반영"</strong> 필요.
       </div>
     </div>
     <div id="cardsList" class="cards-list"></div>
@@ -573,8 +619,34 @@
   </div>
 </div>
 
+<!-- Banner Manager Modal -->
+<div id="bannerModal" class="modal" hidden>
+  <div class="modal-backdrop" data-bn-close></div>
+  <div class="modal-content" style="max-width:640px">
+    <header class="modal-header">
+      <h2>배너 관리</h2>
+      <button class="modal-close" data-bn-close>×</button>
+    </header>
+    <div class="modal-body">
+      <div style="font-size:12px;color:var(--text-muted);line-height:1.5;margin-bottom:12px">
+        🖼 메인 페이지 상단의 배너 슬라이드를 관리합니다. (권장 크기: 1200×300px)<br>
+        클릭 시 이동 URL이 있으면 사용자가 배너를 클릭했을 때 새 탭으로 열립니다.
+      </div>
+      <div id="bannerList"></div>
+      <button class="btn btn-secondary" id="addBannerBtn" style="margin-top:8px;font-size:12px;padding:8px 14px;width:100%">
+        + 배너 추가
+      </button>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" data-bn-close>취소</button>
+      <button class="btn btn-primary" id="saveBannersBtn">저장</button>
+    </div>
+  </div>
+</div>
+
 <input type="file" id="jsonFileInput" accept=".json,application/json" hidden>
 <input type="file" id="imageFileInput" accept="image/*" hidden>
+<input type="file" id="bannerImageFileInput" accept="image/*" hidden>
 <div id="toast" class="toast"></div>
 
 <script>
@@ -592,6 +664,8 @@ const STORAGE_KEY = "weavr_partners_v1";
 const CAT_STORAGE_KEY = "weavr_categories_v1";
 const GH_STORAGE_KEY = "weavr_github_v1";
 const LAST_PUB_KEY = "weavr_last_publish_v1";
+const BANNER_STORAGE_KEY = "weavr_banners_v1";
+const CONFIG_STORAGE_KEY = "weavr_config_v1";
 const SESSION_KEY = "weavr_admin_session";
 const PARTNERS_HTML_PATH = "partners.html";
 
@@ -695,12 +769,24 @@ const DEFAULT_GH = {
   folder: "logo"
 };
 
+const DEFAULT_BANNERS = [
+  { imageUrl: "", linkUrl: "" },
+  { imageUrl: "", linkUrl: "" },
+  { imageUrl: "", linkUrl: "" },
+  { imageUrl: "", linkUrl: "" },
+  { imageUrl: "", linkUrl: "" }
+];
+
+const DEFAULT_CONFIG = { randomOrder: "manual" };  // 'manual' | 'daily' | 'visit'
+
 /* ════════════════════════════════════════════════════════════════
    STATE
 ══════════════════════════════════════════════════════════════════ */
 let state = {
   partners: [],
   categories: {},
+  banners: [],
+  config: { randomOrder: "manual" },
   editingId: null,
   editingCatSlug: null,
   currentView: 'landing'
@@ -722,9 +808,24 @@ function loadAll() {
       state.categories = JSON.parse(JSON.stringify(DEFAULT_CATEGORIES));
     }
   } catch(e) { state.categories = JSON.parse(JSON.stringify(DEFAULT_CATEGORIES)); }
+
+  // Banners
+  try {
+    const raw = localStorage.getItem(BANNER_STORAGE_KEY);
+    state.banners = raw ? JSON.parse(raw) : DEFAULT_BANNERS.slice();
+    if (!Array.isArray(state.banners)) state.banners = DEFAULT_BANNERS.slice();
+  } catch(e) { state.banners = DEFAULT_BANNERS.slice(); }
+
+  // Config
+  try {
+    const raw = localStorage.getItem(CONFIG_STORAGE_KEY);
+    state.config = raw ? { ...DEFAULT_CONFIG, ...JSON.parse(raw) } : { ...DEFAULT_CONFIG };
+  } catch(e) { state.config = { ...DEFAULT_CONFIG }; }
 }
 function savePartners() { localStorage.setItem(STORAGE_KEY, JSON.stringify(state.partners)); }
 function saveCategories() { localStorage.setItem(CAT_STORAGE_KEY, JSON.stringify(state.categories)); }
+function saveBanners() { localStorage.setItem(BANNER_STORAGE_KEY, JSON.stringify(state.banners)); }
+function saveConfig() { localStorage.setItem(CONFIG_STORAGE_KEY, JSON.stringify(state.config)); }
 
 function getCatList() {
   // Returns array of [slug, cat] in insertion order
@@ -1555,6 +1656,177 @@ function buildFiltersHtml() {
   ).join('\n');
 }
 
+/* ════════════════════════════════════════════════════════════════
+   BANNER MANAGER
+══════════════════════════════════════════════════════════════════ */
+function openBannerManager() {
+  renderBannerList();
+  openModal('bannerModal');
+}
+
+function renderBannerList() {
+  const list = document.getElementById('bannerList');
+  list.innerHTML = state.banners.map((b, i) => {
+    const previewBg = b.imageUrl
+      ? `style="background-image:url('${escapeHtml(b.imageUrl)}')"`
+      : '';
+    const previewLabel = b.imageUrl ? '' : String(i+1).padStart(2,'0');
+    return `
+      <div class="banner-row" data-index="${i}">
+        <div class="banner-preview" ${previewBg}>${previewLabel}</div>
+        <div class="banner-fields">
+          <div class="banner-field-row">
+            <span class="banner-field-label">이미지 URL</span>
+            <input type="text" data-field="imageUrl" value="${escapeHtml(b.imageUrl||'')}" placeholder="https://...">
+            <button type="button" class="upload-btn" data-action="upload-banner" title="GitHub에 업로드">📤</button>
+          </div>
+          <div class="banner-field-row">
+            <span class="banner-field-label">클릭 시 이동</span>
+            <input type="text" data-field="linkUrl" value="${escapeHtml(b.linkUrl||'')}" placeholder="https://... (선택사항)">
+          </div>
+        </div>
+        <button type="button" class="banner-remove" data-action="remove-banner" title="삭제">✕</button>
+      </div>
+    `;
+  }).join('');
+
+  // Wire up
+  list.querySelectorAll('.banner-row').forEach(row => {
+    const idx = parseInt(row.dataset.index);
+    // Live preview update
+    const imgInput = row.querySelector('[data-field="imageUrl"]');
+    const preview = row.querySelector('.banner-preview');
+    imgInput.addEventListener('input', () => {
+      const url = imgInput.value.trim();
+      preview.style.backgroundImage = url ? `url('${url}')` : '';
+      preview.textContent = url ? '' : String(idx+1).padStart(2,'0');
+    });
+    row.querySelector('[data-action="upload-banner"]').addEventListener('click', () => triggerBannerImageUpload(idx));
+    row.querySelector('[data-action="remove-banner"]').addEventListener('click', () => {
+      if (state.banners.length <= 1) { showToast('최소 1개 이상 유지해야 합니다', 'error'); return; }
+      // Read current form values into state first
+      readBannerFormToState();
+      state.banners.splice(idx, 1);
+      renderBannerList();
+    });
+  });
+}
+
+function readBannerFormToState() {
+  const rows = document.querySelectorAll('#bannerList .banner-row');
+  state.banners = Array.from(rows).map(row => ({
+    imageUrl: row.querySelector('[data-field="imageUrl"]').value.trim(),
+    linkUrl: row.querySelector('[data-field="linkUrl"]').value.trim()
+  }));
+}
+
+function addBanner() {
+  if (state.banners.length >= 8) { showToast('배너는 최대 8개까지 가능합니다', 'error'); return; }
+  readBannerFormToState();
+  state.banners.push({ imageUrl: '', linkUrl: '' });
+  renderBannerList();
+}
+
+let pendingBannerIdx = null;
+function triggerBannerImageUpload(idx) {
+  const gh = loadGh();
+  if (!gh.token) {
+    showToast('먼저 GitHub 설정에서 토큰을 등록하세요', 'error');
+    setTimeout(openGithubSettings, 800);
+    return;
+  }
+  pendingBannerIdx = idx;
+  document.getElementById('bannerImageFileInput').click();
+}
+
+async function handleBannerImageFile(e) {
+  const file = e.target.files[0];
+  e.target.value = '';
+  if (!file || pendingBannerIdx === null) return;
+  const idx = pendingBannerIdx;
+  pendingBannerIdx = null;
+
+  const gh = loadGh();
+  if (!gh.token) { showToast('GitHub 토큰이 없습니다', 'error'); return; }
+  if (file.size > 5 * 1024 * 1024) { showToast('이미지가 너무 큽니다 (최대 5MB)', 'error'); return; }
+
+  showToast('배너 이미지 업로드 중...', '');
+  try {
+    const filename = `banner-${idx+1}-${Date.now().toString(36)}.${(file.name.split('.').pop()||'jpg').toLowerCase()}`;
+    const path = `${gh.folder}/${filename}`;
+    const base64 = await fileToBase64(file);
+
+    const res = await fetch(`https://api.github.com/repos/${gh.owner}/${gh.repo}/contents/${path}`, {
+      method: 'PUT',
+      headers: {
+        Authorization: `Bearer ${gh.token}`,
+        Accept: 'application/vnd.github+json',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ message: `Upload banner image ${filename}`, content: base64, branch: gh.branch })
+    });
+    if (!res.ok) {
+      const t = await res.text();
+      throw new Error(`${res.status}: ${t.slice(0,150)}`);
+    }
+    const rawUrl = `https://raw.githubusercontent.com/${gh.owner}/${gh.repo}/${gh.branch}/${path}`;
+    // Update the imageUrl input
+    const row = document.querySelector(`#bannerList .banner-row[data-index="${idx}"]`);
+    if (row) {
+      const input = row.querySelector('[data-field="imageUrl"]');
+      input.value = rawUrl;
+      input.dispatchEvent(new Event('input'));
+    }
+    showToast('업로드 완료', 'success');
+  } catch(err) {
+    showToast(`업로드 실패: ${err.message}`, 'error');
+  }
+}
+
+async function saveBanners() {
+  readBannerFormToState();
+  saveBanners.persist();
+  closeAllModals();
+  showToast('배너 저장됨', 'success');
+  if (loadGh().token) {
+    await publishToGithub({ skipConfirm: true, silent: true });
+  }
+}
+saveBanners.persist = () => localStorage.setItem(BANNER_STORAGE_KEY, JSON.stringify(state.banners));
+
+/* ─── Banner HTML generation for partners.html ─── */
+function buildBannersHtml() {
+  if (!state.banners.length) {
+    return `        <div class="banner-slide empty"><div class="slide-num">01</div><div class="slide-hint">배너 이미지를 등록하세요 (권장: 1200×300px)</div></div>`;
+  }
+  return state.banners.map((b, i) => {
+    const num = String(i+1).padStart(2,'0');
+    if (!b.imageUrl) {
+      return `        <div class="banner-slide empty"><div class="slide-num">${num}</div><div class="slide-hint">배너 이미지를 등록하세요 (권장: 1200×300px)</div></div>`;
+    }
+    if (b.linkUrl) {
+      return `        <a class="banner-slide linked" href="${escapeHtml(b.linkUrl)}" target="_blank" rel="noopener"><img src="${escapeHtml(b.imageUrl)}" alt="배너 ${i+1}"/></a>`;
+    }
+    return `        <div class="banner-slide"><img src="${escapeHtml(b.imageUrl)}" alt="배너 ${i+1}"/></div>`;
+  }).join('\n');
+}
+
+function buildConfigJs() {
+  return `window.ADMIN_CONFIG = ${JSON.stringify(state.config)};`;
+}
+
+/* ════════════════════════════════════════════════════════════════
+   RANDOM ORDER SETTING
+══════════════════════════════════════════════════════════════════ */
+async function setRandomOrder(mode) {
+  state.config.randomOrder = mode;
+  saveConfig();
+  showToast(`정렬 모드: ${mode==='manual'?'수동':mode==='daily'?'매일 랜덤':'매 방문 랜덤'}`, 'success');
+  if (loadGh().token) {
+    await publishToGithub({ skipConfirm: true, silent: true });
+  }
+}
+
 async function generateUpdatedHtml() {
   let template;
   try {
@@ -1570,7 +1842,9 @@ async function generateUpdatedHtml() {
     ['<!-- ADMIN_CARDS_START -->', '<!-- ADMIN_CARDS_END -->'],
     ['/* ADMIN_TAG_CSS_START */', '/* ADMIN_TAG_CSS_END */'],
     ['/* ADMIN_FILTER_CSS_START */', '/* ADMIN_FILTER_CSS_END */'],
-    ['<!-- ADMIN_FILTERS_START -->', '<!-- ADMIN_FILTERS_END -->']
+    ['<!-- ADMIN_FILTERS_START -->', '<!-- ADMIN_FILTERS_END -->'],
+    ['<!-- ADMIN_BANNERS_START -->', '<!-- ADMIN_BANNERS_END -->'],
+    ['/* ADMIN_CONFIG_JS_START */', '/* ADMIN_CONFIG_JS_END */']
   ];
   for (const [s, e] of required) {
     if (!template.includes(s) || !template.includes(e)) {
@@ -1583,6 +1857,8 @@ async function generateUpdatedHtml() {
   const newTagCss = buildTagCss();
   const newFilterCss = buildFilterCss();
   const newFiltersHtml = buildFiltersHtml();
+  const newBannersHtml = buildBannersHtml();
+  const newConfigJs = buildConfigJs();
 
   return template
     .replace(
@@ -1600,6 +1876,14 @@ async function generateUpdatedHtml() {
     .replace(
       /<!-- ADMIN_FILTERS_START -->[\s\S]*?<!-- ADMIN_FILTERS_END -->/,
       `<!-- ADMIN_FILTERS_START -->\n${newFiltersHtml}\n    <!-- ADMIN_FILTERS_END -->`
+    )
+    .replace(
+      /<!-- ADMIN_BANNERS_START -->[\s\S]*?<!-- ADMIN_BANNERS_END -->/,
+      `<!-- ADMIN_BANNERS_START -->\n${newBannersHtml}\n        <!-- ADMIN_BANNERS_END -->`
+    )
+    .replace(
+      /\/\* ADMIN_CONFIG_JS_START \*\/[\s\S]*?\/\* ADMIN_CONFIG_JS_END \*\//,
+      `/* ADMIN_CONFIG_JS_START */\n${newConfigJs}\n/* ADMIN_CONFIG_JS_END */`
     )
     .replace(
       /<div class="section-label">전체 파트너 카테고리 \d+<\/div>/,
@@ -1827,6 +2111,7 @@ function showEditView() {
   document.getElementById('homeBtn').hidden = false;
   document.getElementById('cardsCount').hidden = false;
   document.getElementById('pageTitle').textContent = '파트너 카드 관리';
+  document.getElementById('randomModeSelect').value = state.config.randomOrder || 'manual';
   renderCardsList();
 }
 
@@ -1883,8 +2168,17 @@ document.getElementById('githubBtn').addEventListener('click', openGithubSetting
 document.getElementById('saveGhBtn').addEventListener('click', saveGhFromForm);
 document.getElementById('testGhBtn').addEventListener('click', testGithubConnection);
 
+document.getElementById('bannerMgrBtn').addEventListener('click', openBannerManager);
+document.getElementById('addBannerBtn').addEventListener('click', addBanner);
+document.getElementById('saveBannersBtn').addEventListener('click', saveBanners);
+document.getElementById('bannerImageFileInput').addEventListener('change', handleBannerImageFile);
+
+document.getElementById('randomModeSelect').addEventListener('change', (e) => {
+  setRandomOrder(e.target.value);
+});
+
 function closeAllModals() {
-  ['modal','pwModal','catEditModal','catMgrModal','githubModal'].forEach(id => {
+  ['modal','pwModal','catEditModal','catMgrModal','githubModal','bannerModal'].forEach(id => {
     const el = document.getElementById(id);
     if (el) { el.hidden = true; el.style.display = 'none'; }
   });
@@ -1898,7 +2192,7 @@ function openModal(id) {
 }
 
 // Modal close handlers — any X / cancel closes ALL modals to prevent stacking
-document.querySelectorAll('[data-close],[data-pw-close],[data-cm-close],[data-ce-close],[data-gh-close]')
+document.querySelectorAll('[data-close],[data-pw-close],[data-cm-close],[data-ce-close],[data-gh-close],[data-bn-close]')
   .forEach(el => el.addEventListener('click', closeAllModals));
 
 document.addEventListener('keydown', (e) => {

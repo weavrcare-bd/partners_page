@@ -1646,30 +1646,22 @@ document.getElementById('githubBtn').addEventListener('click', openGithubSetting
 document.getElementById('saveGhBtn').addEventListener('click', saveGhFromForm);
 document.getElementById('testGhBtn').addEventListener('click', testGithubConnection);
 
-// Modal close handlers
-document.querySelectorAll('[data-close]').forEach(el => el.addEventListener('click', closeModal));
-document.querySelectorAll('[data-pw-close]').forEach(el => el.addEventListener('click', () => {
+function closeAllModals() {
+  document.getElementById('modal').hidden = true;
   document.getElementById('pwModal').hidden = true;
-}));
-document.querySelectorAll('[data-cm-close]').forEach(el => el.addEventListener('click', () => {
-  document.getElementById('catMgrModal').hidden = true;
-}));
-document.querySelectorAll('[data-ce-close]').forEach(el => el.addEventListener('click', () => {
   document.getElementById('catEditModal').hidden = true;
-  state.editingCatSlug = null;
-}));
-document.querySelectorAll('[data-gh-close]').forEach(el => el.addEventListener('click', () => {
+  document.getElementById('catMgrModal').hidden = true;
   document.getElementById('githubModal').hidden = true;
-}));
+  state.editingId = null;
+  state.editingCatSlug = null;
+}
+
+// Modal close handlers — any X / cancel closes ALL modals to prevent stacking
+document.querySelectorAll('[data-close],[data-pw-close],[data-cm-close],[data-ce-close],[data-gh-close]')
+  .forEach(el => el.addEventListener('click', closeAllModals));
 
 document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape') {
-    closeModal();
-    document.getElementById('pwModal').hidden = true;
-    document.getElementById('catEditModal').hidden = true;
-    document.getElementById('catMgrModal').hidden = true;
-    document.getElementById('githubModal').hidden = true;
-  }
+  if (e.key === 'Escape') closeAllModals();
 });
 
 if (isLoggedIn()) showAdmin();

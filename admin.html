@@ -6,6 +6,8 @@
 <title>닥터팔레트 파트너 관리 — 어드민</title>
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  /* 전역 안전장치: hidden 속성은 어떤 display 규칙보다 우선 */
+  [hidden] { display: none !important; }
   :root {
     --brand: #1a4a99;
     --brand-light: #c5d9ff;

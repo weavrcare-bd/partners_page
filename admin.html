@@ -249,6 +249,32 @@
   }
   .banner-remove:hover { background: #fdf2f2; border-radius: 6px; }
 
+  /* Banner on/off toggle */
+  .banner-toggle-bar {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 12px; padding: 12px 14px; margin-bottom: 14px;
+    background: var(--bg); border: 1px solid var(--border); border-radius: 10px;
+  }
+  .banner-toggle-text { font-size: 13px; font-weight: 600; color: var(--text); }
+  .banner-toggle-text small { display:block; font-weight:500; font-size:11px; color:var(--text-muted); margin-top:2px; }
+  .switch { position: relative; display: inline-block; width: 46px; height: 26px; flex-shrink:0; }
+  .switch input { opacity: 0; width: 0; height: 0; }
+  .switch .slider {
+    position: absolute; inset: 0; cursor: pointer;
+    background: #d4d4d8; border-radius: 26px; transition: background .2s;
+  }
+  .switch .slider::before {
+    content: ""; position: absolute; height: 20px; width: 20px; left: 3px; top: 3px;
+    background: #fff; border-radius: 50%; transition: transform .2s; box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+  }
+  .switch input:checked + .slider { background: var(--success); }
+  .switch input:checked + .slider::before { transform: translateX(20px); }
+  .banner-live-note {
+    font-size: 11px; color: var(--text-muted); margin-bottom: 10px;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .banner-live-note .dot { width:7px; height:7px; border-radius:50%; background:var(--success); display:inline-block; }
+
   /* ───── MODAL ───── */
   .modal {
     position: fixed; inset: 0;
@@ -628,10 +654,21 @@
       <button class="modal-close" data-bn-close>×</button>
     </header>
     <div class="modal-body">
+      <div class="banner-toggle-bar">
+        <div class="banner-toggle-text">
+          배너 광고 영역 표시
+          <small>끄면 라이브 사이트에서 배너 영역 전체가 숨겨집니다</small>
+        </div>
+        <label class="switch">
+          <input type="checkbox" id="bannerEnabledToggle" checked>
+          <span class="slider"></span>
+        </label>
+      </div>
       <div style="font-size:12px;color:var(--text-muted);line-height:1.5;margin-bottom:12px">
         🖼 메인 페이지 상단의 배너 슬라이드를 관리합니다. (권장 크기: 1200×300px)<br>
         클릭 시 이동 URL이 있으면 사용자가 배너를 클릭했을 때 새 탭으로 열립니다.
       </div>
+      <div class="banner-live-note" id="bannerLiveNote" hidden><span class="dot"></span><span>라이브 사이트에 적용된 현재 배너를 불러왔습니다.</span></div>
       <div id="bannerList"></div>
       <button class="btn btn-secondary" id="addBannerBtn" style="margin-top:8px;font-size:12px;padding:8px 14px;width:100%">
         + 배너 추가
@@ -777,7 +814,7 @@ const DEFAULT_BANNERS = [
   { imageUrl: "", linkUrl: "" }
 ];
 
-const DEFAULT_CONFIG = { randomOrder: "manual" };  // 'manual' | 'daily' | 'visit'
+const DEFAULT_CONFIG = { randomOrder: "manual", bannerEnabled: true };  // randomOrder: 'manual' | 'daily' | 'visit'
 
 /* ════════════════════════════════════════════════════════════════
    STATE
@@ -786,7 +823,8 @@ let state = {
   partners: [],
   categories: {},
   banners: [],
-  config: { randomOrder: "manual" },
+  config: { randomOrder: "manual", bannerEnabled: true },
+  bannersDirty: false,
   editingId: null,
   editingCatSlug: null,
   currentView: 'landing'
@@ -1659,7 +1697,82 @@ function buildFiltersHtml() {
 /* ════════════════════════════════════════════════════════════════
    BANNER MANAGER
 ══════════════════════════════════════════════════════════════════ */
-function openBannerManager() {
+
+/* ─── 라이브 partners.html에서 현재 배너 / 설정을 역으로 파싱 ─── */
+function parseBannersFromHtml(html) {
+  const m = html.match(/<!-- ADMIN_BANNERS_START -->([\s\S]*?)<!-- ADMIN_BANNERS_END -->/);
+  if (!m) return null;
+  let doc;
+  try {
+    doc = new DOMParser().parseFromString(`<div id="__w">${m[1]}</div>`, 'text/html');
+  } catch(e) { return null; }
+  const slides = doc.querySelectorAll('.banner-slide');
+  if (!slides.length) return null;
+  const banners = [];
+  slides.forEach(slide => {
+    if (slide.classList.contains('empty')) {
+      banners.push({ imageUrl: '', linkUrl: '' });
+      return;
+    }
+    const img = slide.querySelector('img');
+    const imageUrl = img ? (img.getAttribute('src') || '') : '';
+    let linkUrl = '';
+    if (slide.tagName.toLowerCase() === 'a') linkUrl = slide.getAttribute('href') || '';
+    banners.push({ imageUrl, linkUrl });
+  });
+  return banners;
+}
+
+function parseConfigFromHtml(html) {
+  const m = html.match(/window\.ADMIN_CONFIG\s*=\s*(\{[\s\S]*?\});/);
+  if (!m) return null;
+  try { return JSON.parse(m[1]); } catch(e) { return null; }
+}
+
+/* 라이브 사이트의 배너/표시여부를 state로 끌어옴 (localStorage가 아닌 라이브가 기준) */
+async function syncBannersFromLive() {
+  let synced = false;
+  try {
+    const res = await fetch(PARTNERS_HTML_PATH, { cache: 'no-store' });
+    if (res.ok) {
+      const html = await res.text();
+      const live = parseBannersFromHtml(html);
+      if (live && live.length) {
+        state.banners = live;
+        saveBanners.persist();
+        synced = true;
+      }
+      const cfg = parseConfigFromHtml(html);
+      if (cfg && typeof cfg.bannerEnabled === 'boolean') {
+        state.config.bannerEnabled = cfg.bannerEnabled;
+        saveConfig();
+      }
+    }
+  } catch(e) {
+    // 오프라인 / 로컬 파일 실행 등 → localStorage 값 유지
+  }
+  state.bannersDirty = false;
+  return synced;
+}
+
+async function openBannerManager() {
+  openModal('bannerModal');
+  const list = document.getElementById('bannerList');
+  const note = document.getElementById('bannerLiveNote');
+  if (note) note.hidden = true;
+  list.innerHTML = '<div style="padding:24px;text-align:center;color:var(--text-muted);font-size:13px">라이브 사이트에서 현재 배너를 불러오는 중…</div>';
+  const synced = await syncBannersFromLive();
+  if (note) note.hidden = !synced;
+  renderBannerToggle();
+  renderBannerList();
+}
+
+function renderBannerToggle() {
+  const t = document.getElementById('bannerEnabledToggle');
+  if (t) t.checked = state.config.bannerEnabled !== false;
+}
+
+function openBannerManagerLegacy() {
   renderBannerList();
   openModal('bannerModal');
 }
@@ -1700,8 +1813,11 @@ function renderBannerList() {
       const url = imgInput.value.trim();
       preview.style.backgroundImage = url ? `url('${url}')` : '';
       preview.textContent = url ? '' : String(idx+1).padStart(2,'0');
+      state.bannersDirty = true;
     });
     row.querySelector('[data-action="upload-banner"]').addEventListener('click', () => triggerBannerImageUpload(idx));
+    const linkInput = row.querySelector('[data-field="linkUrl"]');
+    if (linkInput) linkInput.addEventListener('input', () => { state.bannersDirty = true; });
     row.querySelector('[data-action="remove-banner"]').addEventListener('click', () => {
       if (state.banners.length <= 1) { showToast('최소 1개 이상 유지해야 합니다', 'error'); return; }
       // Read current form values into state first
@@ -1718,6 +1834,7 @@ function readBannerFormToState() {
     imageUrl: row.querySelector('[data-field="imageUrl"]').value.trim(),
     linkUrl: row.querySelector('[data-field="linkUrl"]').value.trim()
   }));
+  state.bannersDirty = true;
 }
 
 function addBanner() {
@@ -1785,7 +1902,12 @@ async function handleBannerImageFile(e) {
 
 async function saveBanners() {
   readBannerFormToState();
+  // 토글(배너 영역 전체 표시) 상태 반영
+  const toggle = document.getElementById('bannerEnabledToggle');
+  if (toggle) state.config.bannerEnabled = toggle.checked;
+  state.bannersDirty = true;
   saveBanners.persist();
+  saveConfig();
   closeAllModals();
   showToast('배너 저장됨', 'success');
   if (loadGh().token) {
@@ -1853,6 +1975,23 @@ async function generateUpdatedHtml() {
     }
   }
 
+  /* ★ 핵심 안전장치: 이번 세션에서 배너를 직접 수정하지 않았다면
+     라이브 partners.html에 이미 적용된 배너/표시여부를 그대로 보존한다.
+     (다른 브라우저/기기/캐시초기화 등으로 localStorage가 비어 있어도
+      카드·정렬 등 다른 항목을 게시할 때 배너가 사라지지 않도록 함) */
+  if (!state.bannersDirty) {
+    const liveBanners = parseBannersFromHtml(template);
+    if (liveBanners && liveBanners.length) {
+      state.banners = liveBanners;
+      saveBanners.persist();
+    }
+    const liveCfg = parseConfigFromHtml(template);
+    if (liveCfg && typeof liveCfg.bannerEnabled === 'boolean') {
+      state.config.bannerEnabled = liveCfg.bannerEnabled;
+      saveConfig();
+    }
+  }
+
   const newCards = state.partners.map(buildCardHtml).join('\n\n');
   const newTagCss = buildTagCss();
   const newFilterCss = buildFilterCss();
@@ -1888,6 +2027,10 @@ async function generateUpdatedHtml() {
     .replace(
       /<div class="section-label">전체 파트너 카테고리 \d+<\/div>/,
       `<div class="section-label">전체 파트너 카테고리 ${getCatList().length}</div>`
+    )
+    .replace(
+      /<section class="banner-section"[^>]*>/,
+      `<section class="banner-section"${state.config.bannerEnabled === false ? ' style="display:none"' : ''}>`
     );
 }
 
@@ -1979,6 +2122,7 @@ async function publishToGithub(opts = {}) {
     }
 
     localStorage.setItem(LAST_PUB_KEY, new Date().toISOString());
+    state.bannersDirty = false;
     showToast(`✓ GitHub 반영 완료! 1~2분 후 라이브 적용됩니다.`, 'success');
     if (state.currentView === 'landing') renderLandingStats();
     return true;
@@ -2172,6 +2316,10 @@ document.getElementById('bannerMgrBtn').addEventListener('click', openBannerMana
 document.getElementById('addBannerBtn').addEventListener('click', addBanner);
 document.getElementById('saveBannersBtn').addEventListener('click', saveBanners);
 document.getElementById('bannerImageFileInput').addEventListener('change', handleBannerImageFile);
+document.getElementById('bannerEnabledToggle').addEventListener('change', (e) => {
+  state.config.bannerEnabled = e.target.checked;
+  state.bannersDirty = true;
+});
 
 document.getElementById('randomModeSelect').addEventListener('change', (e) => {
   setRandomOrder(e.target.value);

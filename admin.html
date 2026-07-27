@@ -161,7 +161,7 @@
   .landing-sub { font-size: 13px; color: var(--text-sub); margin-bottom: 28px; }
   .stat-grid {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(auto-fit, minmax(92px, 1fr));
     gap: 10px;
     margin-bottom: 28px;
   }
@@ -379,6 +379,57 @@
   .icon-tile:hover { background: #f4f4f5; }
   .icon-tile.selected { border-color: var(--brand); background: #eef4ff; color: var(--brand); }
 
+  /* ───── SYNC BAR ───── */
+  .sync-bar {
+    display: flex; align-items: center; gap: 8px;
+    padding: 7px 24px;
+    font-size: 12px; font-weight: 500;
+    background: #eef4ff; color: var(--brand);
+    border-bottom: 1px solid var(--border);
+  }
+  .sync-bar.warn { background: #fef7e6; color: #7d5b00; }
+  .sync-bar.err  { background: #fdf2f2; color: var(--danger); }
+  .sync-dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; flex-shrink: 0; }
+  .sync-bar .sync-refresh { margin-left: auto; font-size: 11px; font-weight: 600; color: inherit; opacity: .75; text-decoration: underline; }
+  .sync-bar .sync-refresh:hover { opacity: 1; }
+
+  /* ───── SAVE BAR (일괄 저장) ───── */
+  .save-bar {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 150;
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    box-shadow: 0 -4px 24px rgba(0,0,0,0.10);
+    animation: slideUp .2s ease;
+  }
+  .save-bar[hidden] { display: none !important; }
+  @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+  .save-bar-inner {
+    max-width: 1100px; margin: 0 auto;
+    padding: 12px 24px;
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 14px; flex-wrap: wrap;
+  }
+  .save-bar-info { display: flex; align-items: center; gap: 8px; min-width: 0; }
+  .save-bar-info .pending-dot {
+    width: 9px; height: 9px; border-radius: 50%;
+    background: #e8a33d; flex-shrink: 0;
+    box-shadow: 0 0 0 3px rgba(232,163,61,0.2);
+    animation: pulseDot 1.6s infinite;
+  }
+  @keyframes pulseDot { 0%,100% { opacity:1; } 50% { opacity:.4; } }
+  .save-bar-count { font-size: 13px; font-weight: 700; color: var(--text); }
+  .save-bar-hint { font-size: 11px; color: var(--text-muted); }
+  .save-bar-actions { display: flex; gap: 8px; align-items: center; }
+  .save-bar-actions .btn-primary { padding: 10px 20px; font-size: 14px; }
+
+  .change-list { display: flex; flex-direction: column; gap: 6px; }
+  .change-item {
+    display: flex; gap: 10px; align-items: baseline;
+    background: var(--bg); border-radius: 8px;
+    padding: 9px 12px; font-size: 13px; color: var(--text);
+  }
+  .change-item .time { font-size: 11px; color: var(--text-muted); font-family: monospace; flex-shrink: 0; }
+
   .toast {
     position: fixed;
     bottom: 24px; left: 50%;
@@ -402,6 +453,10 @@
   .status-pill.no { background: #fdd8d6; color: var(--danger); }
 
   @media (max-width:640px) {
+    .sync-bar { padding: 7px 16px; font-size: 11px; }
+    .save-bar-inner { padding: 10px 16px; }
+    .save-bar-actions { width: 100%; }
+    .save-bar-actions .btn { flex: 1; justify-content: center; }
     .admin-header { padding: 12px 16px; }
     .header-right { gap: 4px; }
     .header-right .btn { padding: 6px 10px; font-size: 12px; }
@@ -449,10 +504,17 @@
       <button class="btn btn-secondary" id="exportJsonBtn">JSON 백업</button>
       <button class="btn btn-secondary" id="importJsonBtn">JSON 가져오기</button>
       <button class="btn btn-secondary" id="exportHtmlBtn">📥 HTML 다운로드</button>
-      <button class="btn btn-primary" id="publishBtn">🚀 GitHub에 반영</button>
+      <button class="btn btn-secondary" id="syncBtn" title="라이브(GitHub)의 최신 데이터를 다시 불러옵니다">🔄 동기화</button>
+      <button class="btn btn-primary" id="publishBtn">💾 저장 &amp; 게시</button>
       <button class="btn btn-text" id="logoutBtn">로그아웃</button>
     </div>
   </header>
+
+  <div class="sync-bar" id="syncBar">
+    <span class="sync-dot" id="syncDot"></span>
+    <span id="syncText">라이브 데이터를 확인하는 중…</span>
+    <button class="sync-refresh" id="syncRefreshBtn">다시 불러오기</button>
+  </div>
 
   <!-- Landing / 환영 화면 -->
   <div id="landingView" class="landing-view">
@@ -463,7 +525,8 @@
         <div class="stat"><div class="stat-num" id="statPartners">0</div><div class="stat-label">파트너 카드</div></div>
         <div class="stat"><div class="stat-num" id="statCats">0</div><div class="stat-label">카테고리</div></div>
         <div class="stat"><div class="stat-num small" id="statGh">미연결</div><div class="stat-label">GitHub</div></div>
-        <div class="stat"><div class="stat-num small" id="statLastPub">-</div><div class="stat-label">최근 반영</div></div>
+        <div class="stat"><div class="stat-num small" id="statLastPub">-</div><div class="stat-label">최근 저장</div></div>
+        <div class="stat"><div class="stat-num small" id="statPending">없음</div><div class="stat-label">미저장 변경</div></div>
       </div>
       <button class="btn btn-primary btn-big" id="enterEditBtn">📋 파트너 관리 시작 →</button>
     </div>
@@ -471,12 +534,12 @@
     <div class="guide-card">
       <h2>📖 사용 가이드</h2>
       <ol>
-        <li><strong>"파트너 관리 시작"</strong> 클릭 → 18개 카드 리스트가 보입니다.</li>
-        <li>각 카드 우측의 <strong>"편집"</strong> 으로 업체명·로고·요약·설명·링크 수정.</li>
-        <li><strong>"저장"</strong> 클릭 시 자동으로 GitHub에 반영되어 1~2분 후 라이브 사이트 업데이트.</li>
-        <li>로고는 편집 모달의 <strong>"📤 업로드"</strong> 버튼으로 GitHub에 바로 업로드 가능.</li>
-        <li>우상단 <strong>"🏷 카테고리 관리"</strong> 에서 카테고리 추가/수정/삭제.</li>
-        <li>일괄 변경 후 <strong>"🚀 GitHub에 반영"</strong> 으로 한 번에 반영 가능.</li>
+        <li><strong>"파트너 관리 시작"</strong> 클릭 → 카드 리스트가 보입니다.</li>
+        <li>카드·카테고리·배너를 <strong>원하는 만큼 연달아 수정</strong>합니다. (이 단계에서는 GitHub에 올라가지 않습니다)</li>
+        <li>수정하면 화면 하단에 <strong>"저장 대기 중인 변경 N건"</strong> 바가 나타납니다.</li>
+        <li>모든 수정이 끝나면 <strong>"💾 저장 &amp; 게시"</strong> 를 <u>한 번만</u> 눌러 일괄 반영 → 1~2분 후 라이브 반영.</li>
+        <li>어드민을 열면 <strong>라이브 partners.html의 데이터를 자동으로 불러옵니다.</strong> 다른 PC·브라우저에서 열어도 항상 최신 상태입니다.</li>
+        <li>로고·배너 이미지는 <strong>"📤 업로드"</strong> 시 즉시 GitHub에 올라갑니다. (이미지 파일만 해당)</li>
       </ol>
     </div>
   </div>
@@ -496,8 +559,8 @@
         </div>
       </div>
       <div class="info">
-        편집 모달의 <strong>"저장"</strong> 클릭 시 GitHub에 자동 반영됩니다.<br>
-        순서 변경·삭제·정렬 모드 변경은 우상단 <strong>"🚀 GitHub에 반영"</strong> 필요.
+        모든 수정은 <strong>먼저 임시 저장</strong>됩니다. (GitHub에 바로 올라가지 않음)<br>
+        작업을 마친 뒤 하단 <strong>"💾 저장 &amp; 게시"</strong> 를 눌러 한 번에 반영하세요.
       </div>
     </div>
     <div id="cardsList" class="cards-list"></div>
@@ -515,7 +578,7 @@
     <div class="modal-body" id="modalBody"></div>
     <div class="modal-footer">
       <button class="btn btn-secondary" data-close>취소</button>
-      <button class="btn btn-primary" id="modalSaveBtn">저장</button>
+      <button class="btn btn-primary" id="modalSaveBtn">적용</button>
     </div>
   </div>
 </div>
@@ -555,7 +618,7 @@
     <div class="modal-body" id="catEditBody"></div>
     <div class="modal-footer">
       <button class="btn btn-secondary" data-ce-close>취소</button>
-      <button class="btn btn-primary" id="catEditSaveBtn">저장</button>
+      <button class="btn btn-primary" id="catEditSaveBtn">적용</button>
     </div>
   </div>
 </div>
@@ -668,7 +731,7 @@
         🖼 메인 페이지 상단의 배너 슬라이드를 관리합니다. (권장 크기: 1200×300px)<br>
         클릭 시 이동 URL이 있으면 사용자가 배너를 클릭했을 때 새 탭으로 열립니다.
       </div>
-      <div class="banner-live-note" id="bannerLiveNote" hidden><span class="dot"></span><span>라이브 사이트에 적용된 현재 배너를 불러왔습니다.</span></div>
+      <div class="banner-live-note" id="bannerLiveNote" hidden><span class="dot"></span><span id="bannerLiveNoteText">라이브 사이트에 적용된 현재 배너입니다.</span></div>
       <div id="bannerList"></div>
       <button class="btn btn-secondary" id="addBannerBtn" style="margin-top:8px;font-size:12px;padding:8px 14px;width:100%">
         + 배너 추가
@@ -676,7 +739,47 @@
     </div>
     <div class="modal-footer">
       <button class="btn btn-secondary" data-bn-close>취소</button>
-      <button class="btn btn-primary" id="saveBannersBtn">저장</button>
+      <button class="btn btn-primary" id="saveBannersBtn">적용</button>
+    </div>
+  </div>
+</div>
+
+<!-- Changes Modal -->
+<div id="changesModal" class="modal" hidden>
+  <div class="modal-backdrop" data-ch-close></div>
+  <div class="modal-content" style="max-width:520px">
+    <header class="modal-header">
+      <h2>저장 대기 중인 변경 내역</h2>
+      <button class="modal-close" data-ch-close>×</button>
+    </header>
+    <div class="modal-body">
+      <div style="font-size:12px;color:var(--text-muted);line-height:1.6;margin-bottom:12px">
+        아래 항목들은 아직 <strong>라이브 사이트에 반영되지 않았습니다.</strong><br>
+        "💾 저장 &amp; 게시"를 누르면 한 번에 반영됩니다.
+      </div>
+      <div id="changeList" class="change-list"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" data-ch-close>닫기</button>
+      <button class="btn btn-primary" id="changesPublishBtn">💾 저장 &amp; 게시</button>
+    </div>
+  </div>
+</div>
+
+<!-- Save bar -->
+<div class="save-bar" id="saveBar" hidden>
+  <div class="save-bar-inner">
+    <div class="save-bar-info">
+      <span class="pending-dot"></span>
+      <div>
+        <div class="save-bar-count" id="saveBarCount">저장 대기 중인 변경 0건</div>
+        <div class="save-bar-hint">아직 라이브 사이트에 반영되지 않았습니다</div>
+      </div>
+      <button class="btn-text" id="changeListBtn" style="margin-left:6px">내역 보기</button>
+    </div>
+    <div class="save-bar-actions">
+      <button class="btn btn-secondary" id="discardBtn">변경 취소</button>
+      <button class="btn btn-primary" id="saveAllBtn">💾 저장 &amp; 게시</button>
     </div>
   </div>
 </div>
@@ -705,6 +808,8 @@ const BANNER_STORAGE_KEY = "weavr_banners_v1";
 const CONFIG_STORAGE_KEY = "weavr_config_v1";
 const SESSION_KEY = "weavr_admin_session";
 const PARTNERS_HTML_PATH = "partners.html";
+const DRAFT_KEY = "weavr_draft_v1";      // 저장 전 임시 변경분
+const DATA_VERSION = 3;                   // partners.html에 심는 데이터 스키마 버전
 
 /* ─── 기본 카테고리 (18개) ─── */
 const DEFAULT_CATEGORIES = {
@@ -824,9 +929,17 @@ let state = {
   categories: {},
   banners: [],
   config: { randomOrder: "manual", bannerEnabled: true },
-  bannersDirty: false,
+
+  /* ─── 일괄 저장(배치) 관련 ─── */
+  dirty: false,          // 저장(게시)되지 않은 변경이 있는가
+  changes: [],           // [{ t: timestamp, desc: "…" }]
+
+  /* ─── 라이브(partners.html) 동기화 관련 ─── */
+  liveMeta: { updatedAt: null, sha: null, source: null, hasDataBlock: false },
+
   editingId: null,
   editingCatSlug: null,
+  newCardId: null,
   currentView: 'landing'
 };
 
@@ -860,10 +973,58 @@ function loadAll() {
     state.config = raw ? { ...DEFAULT_CONFIG, ...JSON.parse(raw) } : { ...DEFAULT_CONFIG };
   } catch(e) { state.config = { ...DEFAULT_CONFIG }; }
 }
-function savePartners() { localStorage.setItem(STORAGE_KEY, JSON.stringify(state.partners)); }
-function saveCategories() { localStorage.setItem(CAT_STORAGE_KEY, JSON.stringify(state.categories)); }
-function saveBanners() { localStorage.setItem(BANNER_STORAGE_KEY, JSON.stringify(state.banners)); }
-function saveConfig() { localStorage.setItem(CONFIG_STORAGE_KEY, JSON.stringify(state.config)); }
+function savePartners()   { try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state.partners)); } catch(e){} }
+function saveCategories() { try { localStorage.setItem(CAT_STORAGE_KEY, JSON.stringify(state.categories)); } catch(e){} }
+function persistBanners() { try { localStorage.setItem(BANNER_STORAGE_KEY, JSON.stringify(state.banners)); } catch(e){} }
+function saveConfig()     { try { localStorage.setItem(CONFIG_STORAGE_KEY, JSON.stringify(state.config)); } catch(e){} }
+function persistAll() { savePartners(); saveCategories(); persistBanners(); saveConfig(); }
+
+/* ════════════════════════════════════════════════════════════════
+   DATA SNAPSHOT — partners.html에 심고, 다시 읽어오는 단일 데이터
+══════════════════════════════════════════════════════════════════ */
+function buildSnapshot(updatedAt) {
+  return {
+    version: DATA_VERSION,
+    updatedAt: updatedAt || new Date().toISOString(),
+    partners: state.partners,
+    categories: state.categories,
+    banners: state.banners,
+    config: state.config
+  };
+}
+
+function applySnapshot(d) {
+  if (!d || typeof d !== 'object') return false;
+  if (Array.isArray(d.partners)) state.partners = d.partners;
+  if (d.categories && typeof d.categories === 'object' && Object.keys(d.categories).length) {
+    state.categories = d.categories;
+  }
+  if (Array.isArray(d.banners)) state.banners = d.banners;
+  if (d.config && typeof d.config === 'object') state.config = { ...DEFAULT_CONFIG, ...d.config };
+  return true;
+}
+
+/* ─── 저장 전 임시 변경분(드래프트) ─── */
+function persistDraft() {
+  try {
+    localStorage.setItem(DRAFT_KEY, JSON.stringify({
+      dirty: state.dirty,
+      changes: state.changes,
+      baseUpdatedAt: state.liveMeta.updatedAt,
+      data: {
+        partners: state.partners,
+        categories: state.categories,
+        banners: state.banners,
+        config: state.config
+      }
+    }));
+  } catch(e){}
+}
+function loadDraft() {
+  try { const raw = localStorage.getItem(DRAFT_KEY); return raw ? JSON.parse(raw) : null; }
+  catch(e) { return null; }
+}
+function clearDraft() { try { localStorage.removeItem(DRAFT_KEY); } catch(e){} }
 
 function getCatList() {
   // Returns array of [slug, cat] in insertion order
@@ -882,6 +1043,96 @@ function loadGh() {
 }
 function saveGh(gh) {
   localStorage.setItem(GH_STORAGE_KEY, JSON.stringify(gh));
+}
+
+/* ════════════════════════════════════════════════════════════════
+   변경 추적 (수정 → 임시저장 → 나중에 한 번에 게시)
+══════════════════════════════════════════════════════════════════ */
+function markDirty(desc) {
+  state.dirty = true;
+  if (desc) {
+    state.changes.push({ t: Date.now(), desc });
+    if (state.changes.length > 300) state.changes.shift();
+  }
+  persistAll();
+  persistDraft();
+  renderSaveBar();
+  if (state.currentView === 'landing') renderLandingStats();
+}
+
+function clearDirty() {
+  state.dirty = false;
+  state.changes = [];
+  clearDraft();
+  renderSaveBar();
+  if (state.currentView === 'landing') renderLandingStats();
+}
+
+function renderSaveBar() {
+  const bar = document.getElementById('saveBar');
+  if (!bar) return;
+  const n = state.changes.length;
+  bar.hidden = !state.dirty;
+  document.body.style.paddingBottom = state.dirty ? '92px' : '';
+  const cnt = document.getElementById('saveBarCount');
+  if (cnt) cnt.textContent = `저장 대기 중인 변경 ${n}건`;
+  const pb = document.getElementById('publishBtn');
+  if (pb && !pb.disabled) pb.textContent = state.dirty ? `💾 저장 & 게시 (${n})` : '💾 저장 & 게시';
+}
+
+function renderChangeList() {
+  const el = document.getElementById('changeList');
+  if (!el) return;
+  if (!state.changes.length) {
+    el.innerHTML = '<div class="empty-state">변경 내역이 없습니다.</div>';
+    return;
+  }
+  const pad = n => String(n).padStart(2,'0');
+  el.innerHTML = state.changes.slice().reverse().map(c => {
+    const d = new Date(c.t);
+    return `<div class="change-item"><span class="time">${pad(d.getHours())}:${pad(d.getMinutes())}</span><span>${escapeHtml(c.desc)}</span></div>`;
+  }).join('');
+}
+
+function openChangesModal() { renderChangeList(); openModal('changesModal'); }
+
+function discardChanges() {
+  if (!state.dirty) return;
+  if (!confirm(`저장하지 않은 변경 ${state.changes.length}건을 모두 취소하고,\n현재 라이브 사이트(partners.html) 상태로 되돌립니다.\n\n계속하시겠습니까?`)) return;
+  clearDirty();
+  syncFromLive({ force: true, announce: true });
+}
+
+/* ─── 상단 동기화 상태 바 ─── */
+function setSyncStatus(kind, extra) {
+  const bar = document.getElementById('syncBar');
+  const txt = document.getElementById('syncText');
+  if (!bar || !txt) return;
+  bar.classList.remove('warn','err');
+  const when = state.liveMeta.updatedAt ? fmtTime(state.liveMeta.updatedAt) : null;
+  const src = state.liveMeta.source === 'github' ? 'GitHub' : '라이브 페이지';
+  if (kind === 'loading') {
+    txt.textContent = '라이브 데이터를 확인하는 중…';
+  } else if (kind === 'synced') {
+    txt.textContent = `라이브 데이터와 동기화됨${when ? ` · 최종 저장 ${when}` : ''} (${src} 기준)`;
+  } else if (kind === 'dirty') {
+    bar.classList.add('warn');
+    txt.textContent = '저장하지 않은 변경이 있어 동기화를 보류했습니다. (하단에서 저장 또는 변경 취소)';
+  } else if (kind === 'legacy') {
+    bar.classList.add('warn');
+    txt.textContent = '라이브 partners.html에 데이터 블록이 없습니다. 한 번 "저장 & 게시"하면 이후부터 자동 동기화됩니다.';
+  } else if (kind === 'offline') {
+    bar.classList.add('err');
+    txt.textContent = `라이브 데이터를 불러오지 못했습니다${extra ? ` (${extra})` : ''}. 로컬에 저장된 내용으로 표시 중입니다.`;
+  }
+}
+
+function fmtTime(iso) {
+  try {
+    const d = new Date(iso);
+    const pad = n => String(n).padStart(2,'0');
+    return `${d.getMonth()+1}/${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  } catch(e) { return ''; }
 }
 
 /* ════════════════════════════════════════════════════════════════
@@ -975,9 +1226,11 @@ function moveCard(id, dir) {
   if (i < 0) return;
   const j = i + dir;
   if (j < 0 || j >= state.partners.length) return;
+  const moved = state.partners[i];
   [state.partners[i], state.partners[j]] = [state.partners[j], state.partners[i]];
-  savePartners();
+  const nm = moved.type === 'placeholder' ? `[${getCat(moved.category).label}]` : (moved.name || '이름없음');
   renderCardsList();
+  markDirty(`카드 순서 변경: ${nm} (${i+1} → ${j+1}번)`);
 }
 
 function deleteCard(id) {
@@ -988,9 +1241,9 @@ function deleteCard(id) {
     : `"${p.name}" 카드`;
   if (!confirm(`${label}를 삭제하시겠습니까?`)) return;
   state.partners = state.partners.filter(x => x.id !== id);
-  savePartners();
   renderCardsList();
-  showToast('삭제되었습니다', 'success');
+  markDirty(`카드 삭제: ${label}`);
+  showToast('삭제됨 (아직 게시 전)', 'success');
 }
 
 /* ════════════════════════════════════════════════════════════════
@@ -1013,8 +1266,8 @@ function openAddModal() {
     linkUrl: '#'
   };
   state.editingId = newCard.id;
+  state.newCardId = newCard.id;   // 저장 안 하고 닫으면 되돌리기 위함
   state.partners.push(newCard);
-  savePartners();
   renderCardsList();
   openEditModal(newCard.id, true);
 }
@@ -1217,19 +1470,27 @@ async function saveModal() {
     return;
   }
   const i = state.partners.findIndex(p => p.id === updated.id);
+  const isNew = state.newCardId === updated.id;
   if (i >= 0) state.partners[i] = updated;
-  savePartners();
+  const label = updated.type === 'placeholder'
+    ? `[${getCat(updated.category).label}] 준비중 카드`
+    : `"${updated.name}"`;
+  state.newCardId = null;
   renderCardsList();
   closeModal();
-  showToast('로컬에 저장되었습니다', 'success');
-  // Auto-publish to GitHub if token is configured
-  if (loadGh().token) {
-    await publishToGithub({ skipConfirm: true, silent: true });
-  }
+  markDirty(isNew ? `카드 추가: ${label}` : `카드 수정: ${label}`);
+  showToast('적용됨 — 하단 "저장 & 게시"로 반영하세요', 'success');
 }
 
 function closeModal() {
+  // 새로 추가하다가 저장 없이 닫으면 빈 카드가 남지 않도록 제거
+  if (state.newCardId && state.editingId === state.newCardId) {
+    state.partners = state.partners.filter(p => p.id !== state.newCardId);
+    state.newCardId = null;
+    renderCardsList();
+  }
   document.getElementById('modal').hidden = true;
+  document.getElementById('modal').style.display = 'none';
   state.editingId = null;
 }
 
@@ -1442,8 +1703,8 @@ function moveCat(slug, dir) {
   if (j < 0 || j >= entries.length) return;
   [entries[i], entries[j]] = [entries[j], entries[i]];
   state.categories = Object.fromEntries(entries);
-  saveCategories();
   renderCatList();
+  markDirty(`카테고리 순서 변경: ${getCat(slug).label}`);
 }
 
 function deleteCat(slug) {
@@ -1452,15 +1713,14 @@ function deleteCat(slug) {
   if (usedBy.length > 0) {
     if (!confirm(`"${cat.label}" 카테고리를 사용 중인 카드가 ${usedBy.length}개 있습니다.\n삭제하면 이 카드들도 함께 삭제됩니다.\n계속하시겠습니까?`)) return;
     state.partners = state.partners.filter(p => p.category !== slug);
-    savePartners();
     renderCardsList();
   } else {
     if (!confirm(`"${cat.label}" 카테고리를 삭제하시겠습니까?`)) return;
   }
   delete state.categories[slug];
-  saveCategories();
   renderCatList();
-  showToast('카테고리가 삭제되었습니다', 'success');
+  markDirty(`카테고리 삭제: ${cat.label}`);
+  showToast('삭제됨 (아직 게시 전)', 'success');
 }
 
 function openCatEdit(slug) {
@@ -1592,17 +1852,13 @@ async function saveCatEdit() {
   }
 
   state.categories[slug] = { label, bg, fg, icon };
-  saveCategories();
   renderCatList();
   renderCardsList();
   document.getElementById('catEditModal').hidden = true;
   document.getElementById('catEditModal').style.display = 'none';
   state.editingCatSlug = null;
-  showToast(isNew ? '카테고리가 추가되었습니다' : '카테고리가 수정되었습니다', 'success');
-  // Auto-publish
-  if (loadGh().token) {
-    await publishToGithub({ skipConfirm: true, silent: true });
-  }
+  markDirty(isNew ? `카테고리 추가: ${label}` : `카테고리 수정: ${label}`);
+  showToast('적용됨 — 하단 "저장 & 게시"로 반영하세요', 'success');
 }
 
 /* ════════════════════════════════════════════════════════════════
@@ -1729,40 +1985,16 @@ function parseConfigFromHtml(html) {
   try { return JSON.parse(m[1]); } catch(e) { return null; }
 }
 
-/* 라이브 사이트의 배너/표시여부를 state로 끌어옴 (localStorage가 아닌 라이브가 기준) */
-async function syncBannersFromLive() {
-  let synced = false;
-  try {
-    const res = await fetch(PARTNERS_HTML_PATH, { cache: 'no-store' });
-    if (res.ok) {
-      const html = await res.text();
-      const live = parseBannersFromHtml(html);
-      if (live && live.length) {
-        state.banners = live;
-        saveBanners.persist();
-        synced = true;
-      }
-      const cfg = parseConfigFromHtml(html);
-      if (cfg && typeof cfg.bannerEnabled === 'boolean') {
-        state.config.bannerEnabled = cfg.bannerEnabled;
-        saveConfig();
-      }
-    }
-  } catch(e) {
-    // 오프라인 / 로컬 파일 실행 등 → localStorage 값 유지
-  }
-  state.bannersDirty = false;
-  return synced;
-}
-
-async function openBannerManager() {
+function openBannerManager() {
   openModal('bannerModal');
-  const list = document.getElementById('bannerList');
   const note = document.getElementById('bannerLiveNote');
-  if (note) note.hidden = true;
-  list.innerHTML = '<div style="padding:24px;text-align:center;color:var(--text-muted);font-size:13px">라이브 사이트에서 현재 배너를 불러오는 중…</div>';
-  const synced = await syncBannersFromLive();
-  if (note) note.hidden = !synced;
+  const noteText = document.getElementById('bannerLiveNoteText');
+  if (note) {
+    note.hidden = !state.liveMeta.hasDataBlock;
+    if (noteText) noteText.textContent = state.dirty
+      ? '저장 대기 중인 변경이 포함된 상태입니다.'
+      : '라이브 사이트에 적용된 현재 배너입니다.';
+  }
   renderBannerToggle();
   renderBannerList();
 }
@@ -1772,9 +2004,135 @@ function renderBannerToggle() {
   if (t) t.checked = state.config.bannerEnabled !== false;
 }
 
-function openBannerManagerLegacy() {
-  renderBannerList();
-  openModal('bannerModal');
+/* ════════════════════════════════════════════════════════════════
+   ★ 라이브 동기화 엔진
+   partners.html 안에 심어둔 JSON 데이터 블록을 "단일 진실 공급원"으로
+   사용합니다. 어드민은 열 때마다 이 블록을 읽어와 상태를 맞춥니다.
+   → 다른 PC / 다른 브라우저 / 캐시 삭제 후에도 항상 동일한 데이터.
+══════════════════════════════════════════════════════════════════ */
+const DATA_START = '<!-- ADMIN_DATA_START -->';
+const DATA_END   = '<!-- ADMIN_DATA_END -->';
+
+function parseDataFromHtml(html) {
+  const m = html.match(/<!-- ADMIN_DATA_START -->[\s\S]*?<script[^>]*>([\s\S]*?)<\/script>[\s\S]*?<!-- ADMIN_DATA_END -->/);
+  if (!m) return null;
+  try {
+    const d = JSON.parse(m[1].trim());
+    if (!d || !Array.isArray(d.partners)) return null;
+    return d;
+  } catch(e) { return null; }
+}
+
+function injectDataBlock(html, snap) {
+  const json = JSON.stringify(snap).replace(/</g, '\\u003c');
+  const block = DATA_START + '\n<script id="adminData" type="application/json">\n'
+    + json + '\n<\/script>\n' + DATA_END;
+  const re = /<!-- ADMIN_DATA_START -->[\s\S]*?<!-- ADMIN_DATA_END -->/;
+  if (re.test(html)) return html.replace(re, () => block);
+  // 최초 1회: </body> 직전에 새로 삽입
+  if (/<\/body>/i.test(html)) return html.replace(/<\/body>/i, () => block + '\n</body>');
+  return html + '\n' + block;
+}
+
+function base64ToUtf8(b64) {
+  const bin = atob(String(b64 || '').replace(/\s/g, ''));
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  return new TextDecoder('utf-8').decode(bytes);
+}
+
+/* partners.html 원본 가져오기 — 토큰이 있으면 GitHub API 우선
+   (GitHub Pages CDN 캐시로 인한 '옛날 파일' 문제를 피하고, 커밋용 sha도 함께 확보) */
+async function fetchLiveTemplate() {
+  const gh = loadGh();
+  let apiErr = null;
+  if (gh.token) {
+    try {
+      const res = await fetch(
+        `https://api.github.com/repos/${gh.owner}/${gh.repo}/contents/partners.html?ref=${gh.branch}&_=${Date.now()}`,
+        { headers: { Authorization: `Bearer ${gh.token}`, Accept: 'application/vnd.github+json' }, cache: 'no-store' }
+      );
+      if (res.ok) {
+        const info = await res.json();
+        return { html: base64ToUtf8(info.content), sha: info.sha, source: 'github' };
+      }
+      if (res.status === 401) apiErr = new Error('토큰이 유효하지 않습니다');
+      else if (res.status === 403) apiErr = new Error('권한 부족 (Contents: Read & write 필요)');
+      else if (res.status === 404) apiErr = new Error('레포에 partners.html이 없습니다');
+      else apiErr = new Error(`GitHub ${res.status}`);
+    } catch(e) { apiErr = e; }
+  }
+  // 폴백: 같은 폴더의 partners.html
+  try {
+    const res = await fetch(`${PARTNERS_HTML_PATH}?_=${Date.now()}`, { cache: 'no-store' });
+    if (res.ok) return { html: await res.text(), sha: null, source: 'page' };
+    throw new Error(`HTTP ${res.status}`);
+  } catch(e) {
+    throw apiErr || e;
+  }
+}
+
+/* 라이브 → 어드민 화면으로 데이터 끌어오기 */
+async function syncFromLive(opts = {}) {
+  const { force = false, announce = false } = opts;
+
+  if (state.dirty && !force) {
+    setSyncStatus('dirty');
+    return false;
+  }
+
+  setSyncStatus('loading');
+  let t;
+  try {
+    t = await fetchLiveTemplate();
+  } catch(e) {
+    state.liveMeta.source = null;
+    setSyncStatus('offline', e.message);
+    return false;
+  }
+
+  state.liveMeta.sha = t.sha;
+  state.liveMeta.source = t.source;
+
+  const live = parseDataFromHtml(t.html);
+  if (!live) {
+    // 아직 데이터 블록이 없는 예전 partners.html
+    state.liveMeta.hasDataBlock = false;
+    const lb = parseBannersFromHtml(t.html);
+    if (lb && lb.length) { state.banners = lb; persistBanners(); }
+    const lc = parseConfigFromHtml(t.html);
+    if (lc && typeof lc.bannerEnabled === 'boolean') { state.config.bannerEnabled = lc.bannerEnabled; saveConfig(); }
+    setSyncStatus('legacy');
+    refreshCurrentView();
+    return false;
+  }
+
+  state.liveMeta.hasDataBlock = true;
+  applySnapshot(live);
+  state.liveMeta.updatedAt = live.updatedAt || null;
+  persistAll();
+  clearDirty();
+  setSyncStatus('synced');
+  refreshCurrentView();
+  if (announce) showToast('라이브 데이터를 불러왔습니다', 'success');
+  return true;
+}
+
+function refreshCurrentView() {
+  if (state.currentView === 'edit') {
+    const sel = document.getElementById('randomModeSelect');
+    if (sel) sel.value = state.config.randomOrder || 'manual';
+    renderCardsList();
+  } else {
+    renderLandingStats();
+  }
+}
+
+async function manualSync() {
+  if (state.dirty) {
+    if (!confirm(`저장하지 않은 변경 ${state.changes.length}건이 있습니다.\n라이브 데이터를 다시 불러오면 이 변경은 사라집니다.\n\n계속하시겠습니까?`)) return;
+  }
+  await syncFromLive({ force: true, announce: true });
 }
 
 function renderBannerList() {
@@ -1813,11 +2171,8 @@ function renderBannerList() {
       const url = imgInput.value.trim();
       preview.style.backgroundImage = url ? `url('${url}')` : '';
       preview.textContent = url ? '' : String(idx+1).padStart(2,'0');
-      state.bannersDirty = true;
     });
     row.querySelector('[data-action="upload-banner"]').addEventListener('click', () => triggerBannerImageUpload(idx));
-    const linkInput = row.querySelector('[data-field="linkUrl"]');
-    if (linkInput) linkInput.addEventListener('input', () => { state.bannersDirty = true; });
     row.querySelector('[data-action="remove-banner"]').addEventListener('click', () => {
       if (state.banners.length <= 1) { showToast('최소 1개 이상 유지해야 합니다', 'error'); return; }
       // Read current form values into state first
@@ -1834,7 +2189,6 @@ function readBannerFormToState() {
     imageUrl: row.querySelector('[data-field="imageUrl"]').value.trim(),
     linkUrl: row.querySelector('[data-field="linkUrl"]').value.trim()
   }));
-  state.bannersDirty = true;
 }
 
 function addBanner() {
@@ -1900,21 +2254,18 @@ async function handleBannerImageFile(e) {
   }
 }
 
-async function saveBanners() {
+function applyBanners() {
+  const before = JSON.stringify({ b: state.banners, e: state.config.bannerEnabled });
   readBannerFormToState();
-  // 토글(배너 영역 전체 표시) 상태 반영
   const toggle = document.getElementById('bannerEnabledToggle');
   if (toggle) state.config.bannerEnabled = toggle.checked;
-  state.bannersDirty = true;
-  saveBanners.persist();
-  saveConfig();
+  const after = JSON.stringify({ b: state.banners, e: state.config.bannerEnabled });
   closeAllModals();
-  showToast('배너 저장됨', 'success');
-  if (loadGh().token) {
-    await publishToGithub({ skipConfirm: true, silent: true });
-  }
+  if (before === after) { showToast('변경된 내용이 없습니다'); return; }
+  const filled = state.banners.filter(b => b.imageUrl).length;
+  markDirty(`배너 수정 (총 ${state.banners.length}칸 · 이미지 ${filled}개 · 영역 ${state.config.bannerEnabled === false ? '숨김' : '표시'})`);
+  showToast('적용됨 — 하단 "저장 & 게시"로 반영하세요', 'success');
 }
-saveBanners.persist = () => localStorage.setItem(BANNER_STORAGE_KEY, JSON.stringify(state.banners));
 
 /* ─── Banner HTML generation for partners.html ─── */
 function buildBannersHtml() {
@@ -1940,26 +2291,15 @@ function buildConfigJs() {
 /* ════════════════════════════════════════════════════════════════
    RANDOM ORDER SETTING
 ══════════════════════════════════════════════════════════════════ */
-async function setRandomOrder(mode) {
+function setRandomOrder(mode) {
+  if (state.config.randomOrder === mode) return;
   state.config.randomOrder = mode;
-  saveConfig();
-  showToast(`정렬 모드: ${mode==='manual'?'수동':mode==='daily'?'매일 랜덤':'매 방문 랜덤'}`, 'success');
-  if (loadGh().token) {
-    await publishToGithub({ skipConfirm: true, silent: true });
-  }
+  const label = mode==='manual' ? '수동(지정 순서)' : mode==='daily' ? '매일 랜덤' : '매 방문 랜덤';
+  markDirty(`카드 정렬 모드 변경: ${label}`);
+  showToast(`정렬 모드: ${label} (게시 전)`, 'success');
 }
 
-async function generateUpdatedHtml() {
-  let template;
-  try {
-    const res = await fetch(PARTNERS_HTML_PATH, { cache: 'no-store' });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    template = await res.text();
-  } catch(e) {
-    showToast(`partners.html을 못 불러왔습니다 (${e.message}). 같은 폴더에 있는지 확인해주세요.`, 'error');
-    return null;
-  }
-
+function buildPartnersHtml(template, snap) {
   const required = [
     ['<!-- ADMIN_CARDS_START -->', '<!-- ADMIN_CARDS_END -->'],
     ['/* ADMIN_TAG_CSS_START */', '/* ADMIN_TAG_CSS_END */'],
@@ -1968,27 +2308,10 @@ async function generateUpdatedHtml() {
     ['<!-- ADMIN_BANNERS_START -->', '<!-- ADMIN_BANNERS_END -->'],
     ['/* ADMIN_CONFIG_JS_START */', '/* ADMIN_CONFIG_JS_END */']
   ];
-  for (const [s, e] of required) {
-    if (!template.includes(s) || !template.includes(e)) {
-      showToast(`partners.html에 마커가 부족합니다 (${s}). 최신 partners.html을 다시 받아주세요.`, 'error');
+  for (const [st, en] of required) {
+    if (!template.includes(st) || !template.includes(en)) {
+      showToast(`partners.html에 마커가 부족합니다 (${st}). 최신 partners.html을 다시 받아주세요.`, 'error');
       return null;
-    }
-  }
-
-  /* ★ 핵심 안전장치: 이번 세션에서 배너를 직접 수정하지 않았다면
-     라이브 partners.html에 이미 적용된 배너/표시여부를 그대로 보존한다.
-     (다른 브라우저/기기/캐시초기화 등으로 localStorage가 비어 있어도
-      카드·정렬 등 다른 항목을 게시할 때 배너가 사라지지 않도록 함) */
-  if (!state.bannersDirty) {
-    const liveBanners = parseBannersFromHtml(template);
-    if (liveBanners && liveBanners.length) {
-      state.banners = liveBanners;
-      saveBanners.persist();
-    }
-    const liveCfg = parseConfigFromHtml(template);
-    if (liveCfg && typeof liveCfg.bannerEnabled === 'boolean') {
-      state.config.bannerEnabled = liveCfg.bannerEnabled;
-      saveConfig();
     }
   }
 
@@ -1999,43 +2322,36 @@ async function generateUpdatedHtml() {
   const newBannersHtml = buildBannersHtml();
   const newConfigJs = buildConfigJs();
 
-  return template
-    .replace(
-      /<!-- ADMIN_CARDS_START -->[\s\S]*?<!-- ADMIN_CARDS_END -->/,
-      `<!-- ADMIN_CARDS_START -->\n${newCards}\n    <!-- ADMIN_CARDS_END -->`
-    )
-    .replace(
-      /\/\* ADMIN_TAG_CSS_START \*\/[\s\S]*?\/\* ADMIN_TAG_CSS_END \*\//,
-      `/* ADMIN_TAG_CSS_START */\n${newTagCss}\n  /* ADMIN_TAG_CSS_END */`
-    )
-    .replace(
-      /\/\* ADMIN_FILTER_CSS_START \*\/[\s\S]*?\/\* ADMIN_FILTER_CSS_END \*\//,
-      `/* ADMIN_FILTER_CSS_START */\n${newFilterCss}\n  /* ADMIN_FILTER_CSS_END */`
-    )
-    .replace(
-      /<!-- ADMIN_FILTERS_START -->[\s\S]*?<!-- ADMIN_FILTERS_END -->/,
-      `<!-- ADMIN_FILTERS_START -->\n${newFiltersHtml}\n    <!-- ADMIN_FILTERS_END -->`
-    )
-    .replace(
-      /<!-- ADMIN_BANNERS_START -->[\s\S]*?<!-- ADMIN_BANNERS_END -->/,
-      `<!-- ADMIN_BANNERS_START -->\n${newBannersHtml}\n        <!-- ADMIN_BANNERS_END -->`
-    )
-    .replace(
-      /\/\* ADMIN_CONFIG_JS_START \*\/[\s\S]*?\/\* ADMIN_CONFIG_JS_END \*\//,
-      `/* ADMIN_CONFIG_JS_START */\n${newConfigJs}\n/* ADMIN_CONFIG_JS_END */`
-    )
-    .replace(
-      /<div class="section-label">전체 파트너 카테고리 \d+<\/div>/,
-      `<div class="section-label">전체 파트너 카테고리 ${getCatList().length}</div>`
-    )
-    .replace(
-      /<section class="banner-section"[^>]*>/,
-      `<section class="banner-section"${state.config.bannerEnabled === false ? ' style="display:none"' : ''}>`
-    );
+  /* 치환 문자열 안의 $ 기호가 특수문자로 해석되지 않도록 함수형 replace 사용 */
+  const swap = (src, re, repl) => src.replace(re, () => repl);
+
+  let out = template;
+  out = swap(out, /<!-- ADMIN_CARDS_START -->[\s\S]*?<!-- ADMIN_CARDS_END -->/,
+    `<!-- ADMIN_CARDS_START -->\n${newCards}\n    <!-- ADMIN_CARDS_END -->`);
+  out = swap(out, /\/\* ADMIN_TAG_CSS_START \*\/[\s\S]*?\/\* ADMIN_TAG_CSS_END \*\//,
+    `/* ADMIN_TAG_CSS_START */\n${newTagCss}\n  /* ADMIN_TAG_CSS_END */`);
+  out = swap(out, /\/\* ADMIN_FILTER_CSS_START \*\/[\s\S]*?\/\* ADMIN_FILTER_CSS_END \*\//,
+    `/* ADMIN_FILTER_CSS_START */\n${newFilterCss}\n  /* ADMIN_FILTER_CSS_END */`);
+  out = swap(out, /<!-- ADMIN_FILTERS_START -->[\s\S]*?<!-- ADMIN_FILTERS_END -->/,
+    `<!-- ADMIN_FILTERS_START -->\n${newFiltersHtml}\n    <!-- ADMIN_FILTERS_END -->`);
+  out = swap(out, /<!-- ADMIN_BANNERS_START -->[\s\S]*?<!-- ADMIN_BANNERS_END -->/,
+    `<!-- ADMIN_BANNERS_START -->\n${newBannersHtml}\n        <!-- ADMIN_BANNERS_END -->`);
+  out = swap(out, /\/\* ADMIN_CONFIG_JS_START \*\/[\s\S]*?\/\* ADMIN_CONFIG_JS_END \*\//,
+    `/* ADMIN_CONFIG_JS_START */\n${newConfigJs}\n/* ADMIN_CONFIG_JS_END */`);
+  out = swap(out, /<div class="section-label">전체 파트너 카테고리 \d+<\/div>/,
+    `<div class="section-label">전체 파트너 카테고리 ${getCatList().length}</div>`);
+  out = swap(out, /<section class="banner-section"[^>]*>/,
+    `<section class="banner-section"${state.config.bannerEnabled === false ? ' style="display:none"' : ''}>`);
+
+  /* ★ 어드민이 다시 읽어갈 데이터 블록을 partners.html에 심는다 */
+  return injectDataBlock(out, snap || buildSnapshot());
 }
 
 async function exportHtml() {
-  const newHtml = await generateUpdatedHtml();
+  let t;
+  try { t = await fetchLiveTemplate(); }
+  catch(e) { showToast(`partners.html을 못 불러왔습니다 (${e.message})`, 'error'); return; }
+  const newHtml = buildPartnersHtml(t.html);
   if (!newHtml) return;
   const total = state.partners.length;
   const blob = new Blob([newHtml], { type: 'text/html;charset=utf-8' });
@@ -2057,50 +2373,72 @@ function utf8ToBase64(str) {
   return btoa(binary);
 }
 
-async function publishToGithub(opts = {}) {
-  const { skipConfirm = false, silent = false, btnEl = null } = opts;
+/* ════════════════════════════════════════════════════════════════
+   ★ 일괄 저장 & 게시
+   여러 항목을 수정한 뒤 이 함수 한 번으로 GitHub 커밋 1회만 발생합니다.
+══════════════════════════════════════════════════════════════════ */
+async function saveAndPublish(opts = {}) {
   const gh = loadGh();
   if (!gh.token) {
     showToast('GitHub 설정에서 토큰을 먼저 등록하세요', 'error');
-    if (!silent) setTimeout(openGithubSettings, 800);
+    setTimeout(openGithubSettings, 800);
     return false;
   }
 
   const total = state.partners.length;
   const catCount = getCatList().length;
-  if (!skipConfirm) {
-    if (!confirm(`partners.html을 GitHub에 즉시 반영합니다.\n\n• 파트너: ${total}개\n• 카테고리: ${catCount}개\n• 위치: ${gh.owner}/${gh.repo} (${gh.branch})\n\n1~2분 후 라이브 사이트에 반영됩니다. 계속하시겠습니까?`)) {
-      return false;
-    }
+  const changeCount = state.changes.length;
+
+  if (!state.dirty) {
+    if (!confirm('저장 대기 중인 변경사항이 없습니다.\n현재 화면의 내용 그대로 partners.html을 다시 게시할까요?')) return false;
+  } else if (!opts.skipConfirm) {
+    const head = state.changes.slice(-6).map(c => `  · ${c.desc}`).join('\n');
+    const more = changeCount > 6 ? `\n  · 외 ${changeCount - 6}건` : '';
+    const msg = `변경 ${changeCount}건을 GitHub에 한 번에 반영합니다.\n\n${head}${more}\n\n• 파트너 ${total}개 · 카테고리 ${catCount}개\n• 위치: ${gh.owner}/${gh.repo} (${gh.branch})\n\n1~2분 후 라이브 사이트에 반영됩니다. 계속하시겠습니까?`;
+    if (!confirm(msg)) return false;
   }
 
-  const btn = btnEl || document.getElementById('publishBtn');
-  const originalText = btn ? btn.textContent : '';
-  if (btn) { btn.disabled = true; btn.textContent = '⏳ 반영 중...'; }
-  if (silent) showToast('GitHub에 반영 중...', '');
+  const btns = ['publishBtn','saveAllBtn','changesPublishBtn']
+    .map(id => document.getElementById(id)).filter(Boolean);
+  const originals = btns.map(b => b.textContent);
+  btns.forEach(b => { b.disabled = true; b.textContent = '⏳ 저장 중...'; });
 
   try {
-    const newHtml = await generateUpdatedHtml();
+    const t = await fetchLiveTemplate();
+
+    /* ─── 충돌 감지: 다른 곳에서 먼저 저장했는지 확인 ─── */
+    const liveData = parseDataFromHtml(t.html);
+    if (liveData && liveData.updatedAt && state.liveMeta.updatedAt &&
+        liveData.updatedAt !== state.liveMeta.updatedAt) {
+      const ok = confirm(
+        `⚠️ 다른 PC/브라우저에서 먼저 저장한 내역이 있습니다.\n\n` +
+        `· 내가 불러온 시점: ${fmtTime(state.liveMeta.updatedAt)}\n` +
+        `· 라이브 최종 저장: ${fmtTime(liveData.updatedAt)}\n\n` +
+        `계속 진행하면 지금 화면의 내용으로 덮어씁니다.\n` +
+        `(취소 후 "🔄 동기화"를 눌러 최신 내용을 확인할 수 있습니다)`
+      );
+      if (!ok) return false;
+    }
+
+    const snap = buildSnapshot();
+    const newHtml = buildPartnersHtml(t.html, snap);
     if (!newHtml) throw new Error('HTML 생성 실패');
 
-    // Get current SHA of partners.html
-    let sha = null;
-    const getRes = await fetch(`https://api.github.com/repos/${gh.owner}/${gh.repo}/contents/partners.html?ref=${gh.branch}`, {
-      headers: { Authorization: `Bearer ${gh.token}`, Accept: 'application/vnd.github+json' }
-    });
-    if (getRes.ok) {
-      const info = await getRes.json();
-      sha = info.sha;
-    } else if (getRes.status === 401) {
-      throw new Error('토큰이 유효하지 않습니다');
-    } else if (getRes.status === 403) {
-      throw new Error('권한 부족 (Contents: Read & write 필요)');
-    } else if (getRes.status !== 404) {
-      throw new Error(`기존 파일 조회 실패: ${getRes.status}`);
+    /* ─── 커밋용 sha 확보 ─── */
+    let sha = t.sha;
+    if (!sha) {
+      const getRes = await fetch(
+        `https://api.github.com/repos/${gh.owner}/${gh.repo}/contents/partners.html?ref=${gh.branch}`,
+        { headers: { Authorization: `Bearer ${gh.token}`, Accept: 'application/vnd.github+json' } }
+      );
+      if (getRes.ok) sha = (await getRes.json()).sha;
+      else if (getRes.status === 401) throw new Error('토큰이 유효하지 않습니다');
+      else if (getRes.status === 403) throw new Error('권한 부족 (Contents: Read & write 필요)');
+      else if (getRes.status !== 404) throw new Error(`기존 파일 조회 실패: ${getRes.status}`);
     }
 
     const body = {
-      message: `Update partners.html (${total} cards, ${catCount} categories) via admin`,
+      message: `Update partners.html — ${state.dirty ? changeCount + ' changes, ' : ''}${total} cards, ${catCount} categories (admin)`,
       content: utf8ToBase64(newHtml),
       branch: gh.branch
     };
@@ -2118,20 +2456,30 @@ async function publishToGithub(opts = {}) {
 
     if (!putRes.ok) {
       const errText = await putRes.text();
+      if (putRes.status === 409) throw new Error('충돌 발생 — "🔄 동기화" 후 다시 시도해주세요');
       throw new Error(`${putRes.status}: ${errText.slice(0,200)}`);
     }
 
+    const putJson = await putRes.json().catch(() => null);
+    if (putJson && putJson.content && putJson.content.sha) state.liveMeta.sha = putJson.content.sha;
+
     localStorage.setItem(LAST_PUB_KEY, new Date().toISOString());
-    state.bannersDirty = false;
-    showToast(`✓ GitHub 반영 완료! 1~2분 후 라이브 적용됩니다.`, 'success');
+    state.liveMeta.updatedAt = snap.updatedAt;
+    state.liveMeta.hasDataBlock = true;
+    persistAll();
+    clearDirty();
+    setSyncStatus('synced');
+    showToast(`✓ 저장 완료${changeCount ? ` (변경 ${changeCount}건)` : ''} — 1~2분 후 라이브 반영됩니다.`, 'success');
     if (state.currentView === 'landing') renderLandingStats();
     return true;
+
   } catch(err) {
-    showToast(`반영 실패: ${err.message}`, 'error');
+    showToast(`저장 실패: ${err.message}`, 'error');
     console.error(err);
     return false;
   } finally {
-    if (btn) { btn.disabled = false; btn.textContent = originalText; }
+    btns.forEach((b, i) => { b.disabled = false; b.textContent = originals[i]; });
+    renderSaveBar();
   }
 }
 
@@ -2139,11 +2487,7 @@ async function publishToGithub(opts = {}) {
    JSON BACKUP / RESTORE (categories 포함)
 ══════════════════════════════════════════════════════════════════ */
 function exportJson() {
-  const data = {
-    version: 2,
-    partners: state.partners,
-    categories: state.categories
-  };
+  const data = buildSnapshot();
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
@@ -2168,26 +2512,22 @@ function handleJsonFile(e) {
   reader.onload = () => {
     try {
       const data = JSON.parse(reader.result);
-      let partners, categories;
+      let snap;
       if (Array.isArray(data)) {
-        // v1 format: just an array of partners
-        partners = data;
+        snap = { partners: data };                      // v1: 파트너 배열만
       } else if (data.partners && Array.isArray(data.partners)) {
-        partners = data.partners;
-        categories = data.categories;
+        snap = data;                                     // v2 / v3
       } else {
         throw new Error('형식이 올바르지 않습니다');
       }
-      const msg = `파트너 ${partners.length}개${categories ? `, 카테고리 ${Object.keys(categories).length}개` : ''}로 교체합니다. 현재 데이터는 사라집니다. 계속하시겠습니까?`;
-      if (!confirm(msg)) return;
-      state.partners = partners;
-      savePartners();
-      if (categories) {
-        state.categories = categories;
-        saveCategories();
-      }
+      const parts = [`파트너 ${snap.partners.length}개`];
+      if (snap.categories) parts.push(`카테고리 ${Object.keys(snap.categories).length}개`);
+      if (snap.banners) parts.push(`배너 ${snap.banners.length}개`);
+      if (!confirm(`${parts.join(', ')}로 교체합니다.\n현재 화면의 데이터는 사라집니다. 계속하시겠습니까?`)) return;
+      applySnapshot(snap);
       renderCardsList();
-      showToast('JSON 가져오기 완료', 'success');
+      markDirty(`JSON 가져오기 (${parts.join(', ')})`);
+      showToast('가져오기 완료 — "저장 & 게시"로 반영하세요', 'success');
     } catch(err) {
       showToast(`가져오기 실패: ${err.message}`, 'error');
     }
@@ -2231,11 +2571,26 @@ function showToast(msg, kind='') {
 /* ════════════════════════════════════════════════════════════════
    INIT
 ══════════════════════════════════════════════════════════════════ */
-function showAdmin() {
+async function showAdmin() {
   document.getElementById('loginScreen').hidden = true;
   document.getElementById('adminUI').hidden = false;
   loadAll();
+  restoreDraft();          // 저장 안 하고 닫았던 변경분 복구
   showLandingView();
+  renderSaveBar();
+  await syncFromLive();    // ★ 라이브 partners.html 기준으로 화면 동기화
+}
+
+/* 저장하지 않고 브라우저를 닫았던 경우 이어서 작업 */
+function restoreDraft() {
+  const d = loadDraft();
+  if (!d || !d.dirty || !d.data) return;
+  applySnapshot(d.data);
+  state.dirty = true;
+  state.changes = Array.isArray(d.changes) ? d.changes : [];
+  state.liveMeta.updatedAt = d.baseUpdatedAt || null;
+  persistAll();
+  showToast(`저장하지 않은 변경 ${state.changes.length}건을 복구했습니다`, '');
 }
 
 function showLandingView() {
@@ -2264,13 +2619,14 @@ function renderLandingStats() {
   document.getElementById('statCats').textContent = getCatList().length;
   const gh = loadGh();
   document.getElementById('statGh').textContent = gh.token ? '✓ 연결됨' : '미연결';
-  const last = localStorage.getItem(LAST_PUB_KEY);
-  if (last) {
-    const d = new Date(last);
-    const pad = n => String(n).padStart(2,'0');
-    document.getElementById('statLastPub').textContent = `${d.getMonth()+1}/${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
-  } else {
-    document.getElementById('statLastPub').textContent = '없음';
+
+  const last = state.liveMeta.updatedAt || localStorage.getItem(LAST_PUB_KEY);
+  document.getElementById('statLastPub').textContent = last ? fmtTime(last) : '없음';
+
+  const pend = document.getElementById('statPending');
+  if (pend) {
+    pend.textContent = state.dirty ? `${state.changes.length}건` : '없음';
+    pend.style.color = state.dirty ? '#c5302a' : '';
   }
 }
 
@@ -2294,7 +2650,16 @@ document.getElementById('addBtn').addEventListener('click', openAddModal);
 document.getElementById('enterEditBtn').addEventListener('click', showEditView);
 document.getElementById('homeBtn').addEventListener('click', showLandingView);
 document.getElementById('exportHtmlBtn').addEventListener('click', exportHtml);
-document.getElementById('publishBtn').addEventListener('click', () => publishToGithub());
+document.getElementById('publishBtn').addEventListener('click', () => saveAndPublish());
+document.getElementById('saveAllBtn').addEventListener('click', () => saveAndPublish());
+document.getElementById('discardBtn').addEventListener('click', discardChanges);
+document.getElementById('changeListBtn').addEventListener('click', openChangesModal);
+document.getElementById('changesPublishBtn').addEventListener('click', async () => {
+  closeAllModals();
+  await saveAndPublish();
+});
+document.getElementById('syncBtn').addEventListener('click', manualSync);
+document.getElementById('syncRefreshBtn').addEventListener('click', manualSync);
 document.getElementById('exportJsonBtn').addEventListener('click', exportJson);
 document.getElementById('importJsonBtn').addEventListener('click', importJson);
 document.getElementById('jsonFileInput').addEventListener('change', handleJsonFile);
@@ -2314,22 +2679,23 @@ document.getElementById('testGhBtn').addEventListener('click', testGithubConnect
 
 document.getElementById('bannerMgrBtn').addEventListener('click', openBannerManager);
 document.getElementById('addBannerBtn').addEventListener('click', addBanner);
-document.getElementById('saveBannersBtn').addEventListener('click', saveBanners);
+document.getElementById('saveBannersBtn').addEventListener('click', applyBanners);
 document.getElementById('bannerImageFileInput').addEventListener('change', handleBannerImageFile);
-document.getElementById('bannerEnabledToggle').addEventListener('change', (e) => {
-  state.config.bannerEnabled = e.target.checked;
-  state.bannersDirty = true;
-});
 
 document.getElementById('randomModeSelect').addEventListener('change', (e) => {
   setRandomOrder(e.target.value);
 });
 
 function closeAllModals() {
-  ['modal','pwModal','catEditModal','catMgrModal','githubModal','bannerModal'].forEach(id => {
+  ['modal','pwModal','catEditModal','catMgrModal','githubModal','bannerModal','changesModal'].forEach(id => {
     const el = document.getElementById(id);
     if (el) { el.hidden = true; el.style.display = 'none'; }
   });
+  if (state.newCardId) {
+    state.partners = state.partners.filter(p => p.id !== state.newCardId);
+    state.newCardId = null;
+    if (state.currentView === 'edit') renderCardsList();
+  }
   state.editingId = null;
   state.editingCatSlug = null;
 }
@@ -2340,8 +2706,13 @@ function openModal(id) {
 }
 
 // Modal close handlers — any X / cancel closes ALL modals to prevent stacking
-document.querySelectorAll('[data-close],[data-pw-close],[data-cm-close],[data-ce-close],[data-gh-close],[data-bn-close]')
+document.querySelectorAll('[data-close],[data-pw-close],[data-cm-close],[data-ce-close],[data-gh-close],[data-bn-close],[data-ch-close]')
   .forEach(el => el.addEventListener('click', closeAllModals));
+
+/* 저장 안 된 변경이 있으면 창을 닫을 때 경고 */
+window.addEventListener('beforeunload', (e) => {
+  if (state.dirty) { e.preventDefault(); e.returnValue = ''; }
+});
 
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') closeAllModals();
